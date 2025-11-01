@@ -54,7 +54,12 @@ const AdminDashboardPage: React.FC = () => {
         <div className="container mx-auto px-6 py-12">
             <div className="flex justify-between items-center mb-8">
               <h1 className="text-4xl font-bold uppercase tracking-wider">Admin Dashboard</h1>
-              <Button onClick={handleLogout} variant="secondary">Logout</Button>
+              <Button onClick={handleLogout} variant="secondary" className="flex items-center">
+                  <span>Way Out</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
