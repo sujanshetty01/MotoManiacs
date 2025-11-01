@@ -12,7 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 const MainLayout: React.FC = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white">
+    <div className="flex flex-col min-h-screen bg-gray-50 text-gray-900 dark:bg-black dark:text-white transition-colors duration-300">
       <Header />
       <main className="flex-grow">
         <Outlet />

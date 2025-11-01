@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAppContext } from '../hooks/useAppContext';
@@ -14,9 +13,9 @@ const HomePage: React.FC = () => {
             {/* Hero Section */}
             <div className="relative h-[60vh] md:h-[80vh] flex items-center justify-center text-center overflow-hidden">
                 <img 
-                    src="https://tse4.mm.bing.net/th/id/OIP.yBcIJ5TiEwCVtcDPFK86KgHaEK?rs=1&pid=ImgDetMain&o=7&rm=3" 
+                    src="https://picsum.photos/seed/hero/1920/1080" 
                     alt="Motorsport background"
-                    className="absolute top-0 left-0 w-full h-full object-cover z-0 filter brightness-50"
+                    className="absolute top-0 left-0 w-full h-full object-cover z-0 transition-all duration-300 brightness-75 dark:brightness-50"
                 />
                 <div className="relative z-10 p-6">
                     <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tighter uppercase" style={{ textShadow: '0 0 15px rgba(229, 9, 20, 0.8)' }}>
@@ -32,11 +31,13 @@ const HomePage: React.FC = () => {
             </div>
 
             {/* Featured Events Section */}
-            <div className="py-16 bg-gray-900/50">
+            <div className="py-16 bg-gray-100 dark:bg-gray-900/50">
                 <div className="container mx-auto px-6">
-                    <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-white uppercase tracking-wider border-b-2 border-red-600 inline-block pb-2">
-                        Featured Events
-                    </h2>
+                    <div className="text-center mb-12">
+                         <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 dark:text-white uppercase tracking-wider border-b-2 border-red-600 inline-block pb-2">
+                            Featured Events
+                        </h2>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {featuredEvents.map(event => (
                             <EventCard key={event.id} event={event} />

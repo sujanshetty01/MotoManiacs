@@ -19,7 +19,7 @@ export interface Event {
   price: number;
   description: string;
   duration: string;
-  image: string;
+  images: string[];
   type: EventType;
   featured: boolean;
 }
