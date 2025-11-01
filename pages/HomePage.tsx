@@ -14,7 +14,7 @@ const HomePage: React.FC = () => {
             {/* Hero Section */}
             <div className="relative h-[60vh] md:h-[80vh] flex items-center justify-center text-center overflow-hidden">
                 <img 
-                    src="https://picsum.photos/seed/hero/1920/1080" 
+                    src="https://tse4.mm.bing.net/th/id/OIP.yBcIJ5TiEwCVtcDPFK86KgHaEK?rs=1&pid=ImgDetMain&o=7&rm=3" 
                     alt="Motorsport background"
                     className="absolute top-0 left-0 w-full h-full object-cover z-0 filter brightness-50"
                 />

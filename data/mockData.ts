@@ -1,9 +1,12 @@
 import { Event, Booking, EventType, User } from '../types';
+import Driver from './driver.png';
+import CarPrimary from './car_3.png';
+import CarAlternate from './car_1.png';
 
 export const mockUsers: User[] = [
-    { id: 1, email: 'user@example.com', password: 'password', role: 'user' },
-    { id: 2, email: 'admin@example.com', password: 'password', role: 'admin' },
-    { id: 3, email: 'john.doe@example.com', password: 'password123', role: 'user'}
+  { id: 1, email: 'user@example.com', password: 'password', role: 'user' },
+  { id: 2, email: 'admin@example.com', password: 'password', role: 'admin' },
+  { id: 3, email: 'john.doe@example.com', password: 'password123', role: 'user' }
 ];
 
 export const mockEvents: Event[] = [
@@ -15,7 +18,7 @@ export const mockEvents: Event[] = [
     price: 75,
     description: 'Experience the thrill of high-speed drifting under the stars. Top drivers compete for the ultimate title.',
     duration: '4 hours',
-    image: 'https://picsum.photos/seed/midnightdrift/800/600',
+    image: CarPrimary,
     type: EventType.Car,
     featured: true,
   },
@@ -27,7 +30,7 @@ export const mockEvents: Event[] = [
     price: 60,
     description: 'Feel the roar of superbikes as they tear up the track in a series of high-stakes sprint races.',
     duration: '3 hours',
-    image: 'https://picsum.photos/seed/superbike/800/600',
+    image: Driver,
     type: EventType.Bike,
     featured: true,
   },
@@ -39,7 +42,7 @@ export const mockEvents: Event[] = [
     price: 30,
     description: 'A showcase of timeless classics and breathtaking custom builds. A must-see for every auto enthusiast.',
     duration: '8 hours',
-    image: 'https://picsum.photos/seed/classiccar/800/600',
+    image: CarAlternate,
     type: EventType.Car,
     featured: false,
   },
@@ -51,7 +54,7 @@ export const mockEvents: Event[] = [
     price: 45,
     description: 'Get ready for mud, jumps, and adrenaline-pumping motocross action with the toughest riders.',
     duration: '5 hours',
-    image: 'https://picsum.photos/seed/motocross/800/600',
+    image: Driver,
     type: EventType.Bike,
     featured: true,
   },
@@ -63,11 +66,11 @@ export const mockEvents: Event[] = [
     price: 25,
     description: 'The underground tuner scene comes to light. Neon, custom mods, and heart-pounding bass.',
     duration: '4 hours',
-    image: 'https://picsum.photos/seed/tuner/800/600',
+    image: CarPrimary,
     type: EventType.Car,
     featured: false,
   },
-   {
+  {
     id: 6,
     title: 'Vintage Motorcycle Rally',
     date: '2024-11-23T09:00:00Z',
@@ -75,7 +78,7 @@ export const mockEvents: Event[] = [
     price: 20,
     description: 'A journey back in time with beautifully restored vintage motorcycles. A day of chrome, leather, and nostalgia.',
     duration: '6 hours',
-    image: 'https://picsum.photos/seed/vintagemoto/800/600',
+    image: Driver,
     type: EventType.Bike,
     featured: false,
   },
