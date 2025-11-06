@@ -48,7 +48,15 @@ View your app in AI Studio: https://ai.studio/apps/drive/1PenTzQoOi9U6zCO5nu8Ptv
 ### 2. Enable Authentication
 1. In your Firebase project, go to **Authentication** > **Sign-in method**
 2. Enable **Email/Password** provider
-3. Click "Save"
+   - Click on "Email/Password"
+   - Toggle "Enable" switch
+   - Click "Save"
+3. Enable **Google** provider (for Google Sign-In)
+   - Click on "Google"
+   - Toggle "Enable" switch
+   - Enter your project support email (or use default)
+   - Click "Save"
+   - **Note**: You may need to configure OAuth consent screen in Google Cloud Console if prompted
 
 ### 3. Enable Firestore Database
 1. Go to **Firestore Database** in your Firebase project
@@ -200,6 +208,7 @@ service cloud.firestore {
 ## Features
 
 - ✅ Email/Password Authentication
+- ✅ **Google Authentication** (One-click sign-in)
 - ✅ User Registration
 - ✅ Role-based Access Control (Admin/User)
 - ✅ Persistent Authentication State

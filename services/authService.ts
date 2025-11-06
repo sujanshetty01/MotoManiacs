@@ -1,6 +1,8 @@
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
   User as FirebaseUser,
   onAuthStateChanged,
@@ -9,6 +11,9 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 import { User } from '../types';
+
+// Initialize Google Auth Provider
+const googleProvider = new GoogleAuthProvider();
 
 // Firestore collection name for user roles
 const USERS_COLLECTION = 'users';
@@ -119,6 +124,58 @@ export const signUp = async (email: string, password: string): Promise<User> => 
       errorMessage = 'Invalid email address.';
     } else if (error.code === 'auth/weak-password') {
       errorMessage = 'Password should be at least 6 characters.';
+    }
+    
+    throw new Error(errorMessage);
+  }
+};
+
+/**
+ * Sign in with Google
+ */
+export const signInWithGoogle = async (): Promise<User> => {
+  try {
+    const result: UserCredential = await signInWithPopup(auth, googleProvider);
+    const firebaseUser = result.user;
+    
+    // Check if user document exists, if not create one
+    const userDocRef = doc(db, USERS_COLLECTION, firebaseUser.uid);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (!userDoc.exists()) {
+      // First time Google sign-in - create user document with default 'user' role
+      await setDoc(userDocRef, {
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+        role: 'user',
+        provider: 'google',
+        createdAt: serverTimestamp(),
+      });
+    } else {
+      // Update existing user document with latest info
+      await setDoc(userDocRef, {
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+        provider: 'google',
+        lastLogin: serverTimestamp(),
+      }, { merge: true });
+    }
+    
+    return await firebaseUserToAppUser(firebaseUser);
+  } catch (error: any) {
+    console.error('Google sign in error:', error);
+    let errorMessage = 'Failed to sign in with Google. Please try again.';
+    
+    if (error.code === 'auth/popup-closed-by-user') {
+      errorMessage = 'Sign-in popup was closed. Please try again.';
+    } else if (error.code === 'auth/popup-blocked') {
+      errorMessage = 'Popup was blocked. Please allow popups and try again.';
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      errorMessage = 'Sign-in was cancelled. Please try again.';
+    } else if (error.code === 'auth/account-exists-with-different-credential') {
+      errorMessage = 'An account already exists with this email. Please sign in with your email and password.';
     }
     
     throw new Error(errorMessage);

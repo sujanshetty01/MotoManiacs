@@ -17,6 +17,9 @@ const AdminDashboardPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>('events');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     
     const totalRevenue = bookings
         .filter(b => b.status === 'Confirmed')
@@ -25,20 +28,55 @@ const AdminDashboardPage: React.FC = () => {
     const openAddModal = () => {
         setEditingEvent(null);
         setIsModalOpen(true);
+        setError(null);
+        setSuccessMessage(null);
     };
 
     const openEditModal = (event: Event) => {
         setEditingEvent(event);
         setIsModalOpen(true);
+        setError(null);
+        setSuccessMessage(null);
     };
     
-    const handleSaveEvent = (eventData: Event | Omit<Event, 'id'>) => {
-        if ('id' in eventData) {
-            updateEvent(eventData);
-        } else {
-            addEvent(eventData);
+    const handleSaveEvent = async (eventData: Event | Omit<Event, 'id'>) => {
+        setIsSaving(true);
+        setError(null);
+        setSuccessMessage(null);
+        
+        try {
+            if ('id' in eventData) {
+                await updateEvent(eventData);
+                setSuccessMessage('Event updated successfully! Changes are saved to Firebase.');
+            } else {
+                await addEvent(eventData);
+                setSuccessMessage('Event added successfully! It\'s now saved in Firebase.');
+            }
+            setIsModalOpen(false);
+            // Clear success message after 3 seconds
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (err: any) {
+            setError(err.message || 'Failed to save event. Please try again.');
+            console.error('Error saving event:', err);
+        } finally {
+            setIsSaving(false);
         }
-        setIsModalOpen(false);
+    };
+
+    const handleDeleteEvent = async (eventId: string) => {
+        if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+            return;
+        }
+        
+        try {
+            await deleteEvent(eventId);
+            setSuccessMessage('Event deleted successfully from Firebase!');
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (err: any) {
+            setError(err.message || 'Failed to delete event. Please try again.');
+            console.error('Error deleting event:', err);
+            setTimeout(() => setError(null), 5000);
+        }
     };
 
     if (currentUser?.role !== 'admin') return null;
@@ -48,6 +86,18 @@ const AdminDashboardPage: React.FC = () => {
             <div className="flex justify-between items-center mb-8">
               <h1 className="text-4xl font-bold uppercase tracking-wider">Admin Dashboard</h1>
             </div>
+
+            {error && (
+                <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg">
+                    <strong>Error:</strong> {error}
+                </div>
+            )}
+
+            {successMessage && (
+                <div className="mb-4 p-4 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg">
+                    <strong>Success:</strong> {successMessage}
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <StatCard title="Total Events" value={events.length} />
@@ -83,7 +133,7 @@ const AdminDashboardPage: React.FC = () => {
                                         <td className="p-4">${event.price}</td>
                                         <td className="p-4 flex space-x-2">
                                             <Button size="sm" onClick={() => openEditModal(event)}>Edit</Button>
-                                            <Button size="sm" variant="secondary" onClick={() => deleteEvent(event.id)}>Delete</Button>
+                                            <Button size="sm" variant="secondary" onClick={() => handleDeleteEvent(event.id)}>Delete</Button>
                                         </td>
                                     </tr>
                                 ))}
@@ -125,7 +175,7 @@ const AdminDashboardPage: React.FC = () => {
                      </table>
                  </div>
             )}
-            {isModalOpen && <EventModal event={editingEvent} onSave={handleSaveEvent} onClose={() => setIsModalOpen(false)} />}
+            {isModalOpen && <EventModal event={editingEvent} onSave={handleSaveEvent} onClose={() => setIsModalOpen(false)} isSaving={isSaving} />}
         </div>
     );
 };
@@ -153,7 +203,7 @@ const SelectField: React.FC<React.SelectHTMLAttributes<HTMLSelectElement> & { la
 );
 
 
-const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => void, onClose: () => void}> = ({ event, onSave, onClose }) => {
+const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => Promise<void>, onClose: () => void, isSaving?: boolean}> = ({ event, onSave, onClose, isSaving = false }) => {
     const [formData, setFormData] = useState({
         title: event?.title || '',
         date: event?.date ? new Date(event.date).toISOString().substring(0, 16) : '',
@@ -197,7 +247,7 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => voi
         setFormData(prev => ({ ...prev, images: [urlToSet, ...prev.images.filter(url => url !== urlToSet)] }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (formData.images.length === 0) {
             alert("Please add at least one image for the event.");
@@ -205,9 +255,9 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => voi
         }
         const dataToSave = { ...formData, date: new Date(formData.date).toISOString() };
         if (event) {
-            onSave({ ...dataToSave, id: event.id });
+            await onSave({ ...dataToSave, id: event.id });
         } else {
-            onSave(dataToSave);
+            await onSave(dataToSave);
         }
     };
 
@@ -258,8 +308,10 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => voi
                     </div>
 
                     <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-                        <Button type="submit">Save Event</Button>
+                        <Button type="button" variant="secondary" onClick={onClose} disabled={isSaving}>Cancel</Button>
+                        <Button type="submit" disabled={isSaving}>
+                            {isSaving ? 'Saving to Firebase...' : 'Save Event'}
+                        </Button>
                     </div>
                 </form>
             </div>

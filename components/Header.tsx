@@ -35,30 +35,45 @@ const Header: React.FC = () => {
     }
 
     const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
-        `block py-2 pr-4 pl-3 uppercase tracking-wider transition-colors duration-300 ${isActive ? 'text-red-500' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`;
+        `block py-2 pr-4 pl-3 uppercase tracking-wider transition-all duration-300 font-semibold relative ${
+            isActive 
+                ? 'text-red-600 dark:text-red-500' 
+                : 'text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-500'
+        } ${
+            isActive 
+                ? 'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-red-600 after:dark:bg-red-500 after:rounded-full' 
+                : ''
+        }`;
     
     return (
-        <header className="bg-white/80 dark:bg-black/80 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800">
+        <header className="bg-white/95 dark:bg-black/95 backdrop-blur-md sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800 shadow-sm">
             <div className="container mx-auto flex justify-between items-center p-4">
-                <Link to="/home" className="flex items-center space-x-2">
-                    <MotoIcon />
-                    <span className="text-2xl font-bold tracking-tighter text-gray-900 dark:text-white">MotoManiacs</span>
+                <Link to="/home" className="flex items-center space-x-3 group">
+                    <div className="transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12">
+                        <MotoIcon />
+                    </div>
+                    <span className="text-2xl font-black tracking-tight text-gray-900 dark:text-white group-hover:text-red-600 transition-colors duration-300">MotoManiacs</span>
                 </Link>
 
-                <div className="hidden md:flex items-center space-x-6">
+                <div className="hidden md:flex items-center space-x-8">
                     <NavLink to="/home" className={navLinkClasses}>Home</NavLink>
                     <NavLink to="/events" className={navLinkClasses}>Events</NavLink>
                     {currentUser && <NavLink to="/dashboard" className={navLinkClasses}>Dashboard</NavLink>}
                     {currentUser?.role === 'admin' && <NavLink to="/admin/dashboard" className={navLinkClasses}>Admin</NavLink>}
                     {currentUser ? (
-                        <Button onClick={handleLogout} size="sm" variant="secondary" className="flex items-center">
-                            <span>Way Out</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <Button onClick={handleLogout} size="sm" variant="secondary" className="flex items-center gap-2 group">
+                            <span>Logout</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                             </svg>
                         </Button>
                     ) : (
-                        <Button onClick={handleLogin} size="sm">Login</Button>
+                        <Button onClick={handleLogin} size="sm" className="group">
+                            Login
+                            <svg className="inline-block ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                        </Button>
                     )}
                     <ThemeToggleButton />
                 </div>

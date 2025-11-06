@@ -1,7 +1,7 @@
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { Event, Booking, User } from '../types';
 import { mockBookings } from '../data/mockData';
-import { signIn, signUp, signOutUser, onAuthStateChange } from '../services/authService';
+import { signIn, signUp, signInWithGoogle, signOutUser, onAuthStateChange } from '../services/authService';
 import { getEvents, addEvent as addEventToFirestore, updateEvent as updateEventInFirestore, deleteEvent as deleteEventFromFirestore, subscribeToEvents } from '../services/eventsService';
 import { seedEvents } from '../scripts/seedEvents';
 
@@ -26,6 +26,7 @@ interface AppContextType {
   cancelBooking: (bookingId: string) => Promise<void>;
   login: (email: string, password: string) => Promise<User>;
   register: (email: string, password: string) => Promise<User>;
+  loginWithGoogle: () => Promise<User>;
   logout: () => Promise<void>;
 }
 
@@ -172,6 +173,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const loginWithGoogle = async (): Promise<User> => {
+    setIsLoading(true);
+    try {
+      const user = await signInWithGoogle();
+      // Auth state listener will update currentUser automatically
+      return user;
+    } catch (error: any) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
   const logout = async () => {
     setIsLoading(true);
     try {
@@ -201,6 +214,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       cancelBooking, 
       login,
       register,
+      loginWithGoogle,
       logout 
   };
   
