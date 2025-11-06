@@ -1,8 +1,8 @@
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { Event, Booking, User } from '../types';
-import { mockBookings } from '../data/mockData';
 import { signIn, signUp, signInWithGoogle, signOutUser, onAuthStateChange } from '../services/authService';
 import { getEvents, addEvent as addEventToFirestore, updateEvent as updateEventInFirestore, deleteEvent as deleteEventFromFirestore, subscribeToEvents } from '../services/eventsService';
+import { addBooking as addBookingToFirestore, cancelBooking as cancelBookingInFirestore, subscribeToAllBookings, subscribeToUserBookings } from '../services/bookingsService';
 import { seedEvents } from '../scripts/seedEvents';
 
 // Make seedEvents available in browser console for development
@@ -69,26 +69,53 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   }, []);
 
-  // Set up auth state listener
+  // Set up auth state listener and bookings subscription
   useEffect(() => {
+    let unsubscribeBookings: (() => void) | null = null;
+
     const unsubscribe = onAuthStateChange(async (user) => {
       setCurrentUser(user);
       setIsLoading(false);
       
-      // Load bookings based on user role
+      // Unsubscribe from previous bookings listener
+      if (unsubscribeBookings) {
+        unsubscribeBookings();
+        unsubscribeBookings = null;
+      }
+      
+      // Set up bookings subscription based on user role
       if (user) {
-        if (user.role === 'admin') {
-          setBookings(mockBookings);
-        } else {
-          const userBookings = mockBookings.filter(b => b.userId === user.id);
-          setBookings(userBookings);
+        try {
+          if (user.role === 'admin') {
+            // Admin sees all bookings
+            unsubscribeBookings = subscribeToAllBookings((bookings) => {
+              setBookings(bookings);
+            });
+          } else {
+            // Regular users see only their bookings
+            unsubscribeBookings = subscribeToUserBookings(user.id, (bookings) => {
+              setBookings(bookings);
+            });
+          }
+        } catch (error: any) {
+          console.error('Error setting up bookings subscription:', error);
+          // If there's an index error, show helpful message
+          if (error.code === 'failed-precondition') {
+            console.warn('Firestore index required. Check console for index creation link.');
+          }
+          setBookings([]);
         }
       } else {
         setBookings([]);
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsubscribeBookings) {
+        unsubscribeBookings();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -136,17 +163,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!currentUser) {
         throw new Error("User must be logged in to make a booking.");
     }
-    const newBooking: Booking = {
+    try {
+      // Add to Firestore - real-time listener will update state automatically
+      const bookingWithUserId = {
         ...booking,
-        id: new Date().getTime().toString(),
         userId: currentUser.id,
-    };
-    setBookings(prev => [...prev, newBooking]);
-    return newBooking;
+      };
+      console.log('AppContext: Adding booking with userId:', currentUser.id);
+      const createdBooking = await addBookingToFirestore(bookingWithUserId);
+      console.log('AppContext: Booking created successfully:', createdBooking.id);
+      // Don't manually update state - let the real-time listener handle it
+      return createdBooking;
+    } catch (error: any) {
+      console.error('AppContext: Error adding booking:', error);
+      // Re-throw the error so the UI can handle it
+      throw error;
+    }
   };
   
   const cancelBooking = async (bookingId: string) => {
-    setBookings(prev => prev.map(b => b.id === bookingId ? {...b, status: 'Cancelled'} : b));
+    try {
+      // Update in Firestore - real-time listener will update state automatically
+      await cancelBookingInFirestore(bookingId);
+    } catch (error: any) {
+      console.error('Error cancelling booking:', error);
+      throw new Error(error.message || 'Failed to cancel booking');
+    }
   };
 
   const login = async (email: string, password: string): Promise<User> => {

@@ -143,37 +143,90 @@ const AdminDashboardPage: React.FC = () => {
                 </div>
             )}
             {activeTab === 'bookings' && (
-                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-x-auto">
-                     <table className="w-full text-left">
-                         <thead className="bg-gray-100 dark:bg-gray-800">
-                             <tr>
-                                 <th className="p-4">Event</th>
-                                 <th className="p-4">User</th>
-                                 <th className="p-4">Tickets</th>
-                                 <th className="p-4">Total Price</th>
-                                 <th className="p-4">Status</th>
-                             </tr>
-                         </thead>
-                         <tbody>
-                             {bookings.map((booking, index) => {
-                                 const event = events.find(e => e.id === booking.eventId);
-                                 return (
-                                     <tr key={booking.id} className={`border-t border-gray-200 dark:border-gray-700 ${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-900'} hover:bg-gray-100 dark:hover:bg-gray-800/50`}>
-                                         <td className="p-4">{event?.title || 'N/A'}</td>
-                                         <td className="p-4">{booking.userName}<br/><span className="text-sm text-gray-500 dark:text-gray-400">{booking.userEmail}</span></td>
-                                         <td className="p-4">{booking.tickets}</td>
-                                         <td className="p-4">${booking.totalPrice.toFixed(2)}</td>
-                                         <td className="p-4">
-                                            <span className={`px-3 py-1 text-sm font-semibold rounded-full ${booking.status === 'Confirmed' ? 'bg-green-600 text-white' : 'bg-yellow-600 text-black'}`}>
-                                                {booking.status}
-                                            </span>
-                                         </td>
-                                     </tr>
-                                 );
-                             })}
-                         </tbody>
-                     </table>
-                 </div>
+                <div>
+                    {bookings.length > 0 ? (
+                        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-x-auto shadow-lg">
+                            <div className="p-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                    All User Bookings ({bookings.length})
+                                </h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                    View and manage all bookings made by users
+                                </p>
+                            </div>
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-100 dark:bg-gray-800">
+                                    <tr>
+                                        <th className="p-4 font-semibold">Booking Date</th>
+                                        <th className="p-4 font-semibold">Event</th>
+                                        <th className="p-4 font-semibold">User</th>
+                                        <th className="p-4 font-semibold">Contact</th>
+                                        <th className="p-4 font-semibold">Tickets</th>
+                                        <th className="p-4 font-semibold">Total Price</th>
+                                        <th className="p-4 font-semibold">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {bookings.map((booking, index) => {
+                                        const event = events.find(e => e.id === booking.eventId);
+                                        return (
+                                            <tr key={booking.id} className={`border-t border-gray-200 dark:border-gray-700 ${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-900'} hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors`}>
+                                                <td className="p-4 text-sm">
+                                                    {new Date(booking.bookingDate).toLocaleDateString('en-US', { 
+                                                        year: 'numeric', 
+                                                        month: 'short', 
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="font-medium text-gray-900 dark:text-white">{event?.title || 'Event Deleted'}</div>
+                                                    {event && (
+                                                        <div className="text-sm text-gray-500 dark:text-gray-400">{event.venue}</div>
+                                                    )}
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="font-medium text-gray-900 dark:text-white">{booking.userName}</div>
+                                                    <div className="text-sm text-gray-500 dark:text-gray-400">{booking.userEmail}</div>
+                                                </td>
+                                                <td className="p-4 text-sm text-gray-600 dark:text-gray-400">{booking.phone}</td>
+                                                <td className="p-4">
+                                                    <span className="font-semibold text-gray-900 dark:text-white">{booking.tickets}</span>
+                                                    <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">ticket{booking.tickets !== 1 ? 's' : ''}</span>
+                                                </td>
+                                                <td className="p-4">
+                                                    <span className="font-bold text-lg text-red-600">${booking.totalPrice.toFixed(2)}</span>
+                                                </td>
+                                                <td className="p-4">
+                                                    <span className={`px-3 py-1.5 text-sm font-semibold rounded-full inline-block ${
+                                                        booking.status === 'Confirmed' 
+                                                            ? 'bg-green-600 text-white' 
+                                                            : 'bg-yellow-600 text-black'
+                                                    }`}>
+                                                        {booking.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-12 text-center">
+                            <div className="inline-block p-6 bg-gray-100 dark:bg-gray-800 rounded-full mb-6">
+                                <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Bookings Yet</h3>
+                            <p className="text-lg text-gray-500 dark:text-gray-400">
+                                Bookings will appear here once users start booking events.
+                            </p>
+                        </div>
+                    )}
+                </div>
             )}
             {isModalOpen && <EventModal event={editingEvent} onSave={handleSaveEvent} onClose={() => setIsModalOpen(false)} isSaving={isSaving} />}
         </div>

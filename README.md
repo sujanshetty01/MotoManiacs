@@ -182,6 +182,16 @@ Events are now stored in Firestore and persist even after logging out. To popula
 
 **Note**: Events are publicly readable (no authentication required) so all users can see them. Only admins can add/edit/delete events.
 
+### 5. Set Up Bookings Collection
+
+Bookings are automatically created when users book events. The system will:
+- Create a `bookings` collection in Firestore automatically
+- Store all booking data (user info, event, tickets, price, etc.)
+- Allow admins to view all bookings
+- Allow users to view only their own bookings
+
+**Important**: When you first query user bookings, Firestore may prompt you to create a composite index. If you see an error with a link, click it to create the required index automatically.
+
 ### 6. Security Rules (Recommended)
 Update your Firestore security rules to protect user data and allow public event reading:
 
@@ -189,6 +199,12 @@ Update your Firestore security rules to protect user data and allow public event
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
     // Users collection - users can only read/write their own data
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
@@ -198,8 +214,20 @@ service cloud.firestore {
     // Events collection - public read, admin write
     match /events/{eventId} {
       allow read: if true; // Anyone can read events
-      allow write: if request.auth != null && 
-                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    // Bookings collection - users can read their own, admins can read all
+    match /bookings/{bookingId} {
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if request.auth != null && 
+                      request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow delete: if request.auth != null && isAdmin();
     }
   }
 }
@@ -217,3 +245,6 @@ service cloud.firestore {
 - ✅ **Events Persistence in Firestore** (survives logout)
 - ✅ **Real-time Events Updates** (changes sync automatically)
 - ✅ **Image URLs Stored in Firestore** (images persist with events)
+- ✅ **Bookings Persistence in Firestore** (all bookings saved to database)
+- ✅ **Admin Booking Management** (admins can view all user bookings)
+- ✅ **Real-time Booking Updates** (bookings sync automatically)

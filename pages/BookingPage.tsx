@@ -53,12 +53,15 @@ const BookingPage: React.FC = () => {
             bookingDate: new Date().toISOString(),
             status: 'Confirmed' as 'Confirmed',
         };
+        console.log('BookingPage: Attempting to create booking...');
         const createdBooking = await addBooking(newBooking);
+        console.log('BookingPage: Booking created successfully:', createdBooking);
         setBookingDetails(createdBooking);
         setIsBooked(true);
-    } catch (error) {
-        console.error("Booking failed:", error);
-        alert("There was an issue with your booking. Please try again.");
+    } catch (error: any) {
+        console.error("BookingPage: Booking failed:", error);
+        const errorMessage = error?.message || "There was an issue with your booking. Please try again.";
+        alert(`Booking Error: ${errorMessage}\n\nCheck the browser console for more details.`);
     }
   };
   
