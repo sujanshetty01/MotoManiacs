@@ -16,10 +16,17 @@ const Header: React.FC = () => {
     const { currentUser, logout } = useAppContext();
     const navigate = useNavigate();
 
-    const handleLogout = () => {
-        logout();
-        navigate('/');
-        setIsOpen(false);
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/');
+            setIsOpen(false);
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Still navigate even if logout fails
+            navigate('/');
+            setIsOpen(false);
+        }
     };
 
     const handleLogin = () => {

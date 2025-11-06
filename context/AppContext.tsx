@@ -1,6 +1,7 @@
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { Event, Booking, User } from '../types';
-import { mockEvents, mockBookings, mockUsers } from '../data/mockData';
+import { mockEvents, mockBookings } from '../data/mockData';
+import { signIn, signUp, signOutUser, onAuthStateChange } from '../services/authService';
 
 type Theme = 'light' | 'dark';
 
@@ -17,6 +18,7 @@ interface AppContextType {
   addBooking: (booking: Omit<Booking, 'id' | 'userId'>) => Promise<Booking>;
   cancelBooking: (bookingId: string) => Promise<void>;
   login: (email: string, password: string) => Promise<User>;
+  register: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
 }
 
@@ -26,13 +28,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [events, setEvents] = useState<Event[]>(mockEvents);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with true to wait for auth check
   const [theme, setTheme] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('theme') as Theme | null;
     if (savedTheme) return savedTheme;
     const userPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     return userPrefersDark ? 'dark' : 'light';
   });
+
+  // Set up auth state listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChange(async (user) => {
+      setCurrentUser(user);
+      setIsLoading(false);
+      
+      // Load bookings based on user role
+      if (user) {
+        if (user.role === 'admin') {
+          setBookings(mockBookings);
+        } else {
+          const userBookings = mockBookings.filter(b => b.userId === user.id);
+          setBookings(userBookings);
+        }
+      } else {
+        setBookings([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -76,24 +100,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const login = async (email: string, password: string): Promise<User> => {
-    const user = mockUsers.find(u => u.email === email);
-    if (user) {
-        setCurrentUser(user);
-        if (user.role === 'admin') {
-            setBookings(mockBookings);
-        } else {
-            const userBookings = mockBookings.filter(b => b.userId === user.id);
-            setBookings(userBookings);
-        }
-        return user;
-    } else {
-      throw new Error("Invalid credentials. Please try again.");
+    setIsLoading(true);
+    try {
+      const user = await signIn(email, password);
+      // Auth state listener will update currentUser automatically
+      return user;
+    } catch (error: any) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  const register = async (email: string, password: string): Promise<User> => {
+    setIsLoading(true);
+    try {
+      const user = await signUp(email, password);
+      // Auth state listener will update currentUser automatically
+      return user;
+    } catch (error: any) {
+      setIsLoading(false);
+      throw error;
     }
   };
 
   const logout = async () => {
-    setCurrentUser(null);
-    setBookings([]);
+    setIsLoading(true);
+    try {
+      await signOutUser();
+      // Auth state listener will update currentUser automatically
+      setCurrentUser(null);
+      setBookings([]);
+    } catch (error: any) {
+      setIsLoading(false);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const value = { 
@@ -108,7 +150,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       deleteEvent, 
       addBooking, 
       cancelBooking, 
-      login, 
+      login,
+      register,
       logout 
   };
   
