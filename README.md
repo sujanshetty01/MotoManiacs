@@ -56,24 +56,142 @@ View your app in AI Studio: https://ai.studio/apps/drive/1PenTzQoOi9U6zCO5nu8Ptv
 3. Choose "Start in test mode" (for development)
 4. Select a location and click "Enable"
 
-### 4. Set Up User Roles (Optional)
-To manually assign admin roles:
-1. Go to **Firestore Database
-2. Create a collection called `users`
-3. Add a document with the user's UID as the document ID
-4. Add a field `role` with value `"admin"` or `"user"`
+### 4. Assign Admin Roles to Users
 
-Alternatively, you can use the `setUserRole` function from `services/authService.ts` programmatically.
+By default, all new users are assigned the `"user"` role. To promote a user to admin, you have three options:
 
-### 5. Security Rules (Recommended)
-Update your Firestore security rules to protect user data:
+#### Method 1: Using Firebase Console (Easiest)
+
+**Step 1: Get the User's UID**
+1. Go to **Authentication** > **Users** in your Firebase Console
+2. Find the user you want to make an admin
+3. Click on the user to view their details
+4. Copy their **User UID** (it looks like: `abc123def456ghi789...`)
+
+**Step 2: Update User Document in Firestore**
+
+**⚠️ Important**: If you see "Already used by another document in this collection", the document already exists! You need to **EDIT** it, not create a new one.
+
+1. Go to **Firestore Database** in your Firebase Console
+2. Click on the **`users`** collection (it should already exist after the user registered)
+3. **Find the document with the User UID** you copied:
+   - Look through the list of documents
+   - The document ID should match the User UID exactly
+   - **OR** use the search/filter if you have many documents
+4. **Click on the document** to open it (don't click "Add document")
+5. You'll see the existing fields. Now:
+   - If `role` field doesn't exist: Click **"Add field"**
+   - If `role` field exists: Click on the `role` field value to edit it
+6. Set the field:
+   - **Field name**: `role`
+   - **Field type**: `string`
+   - **Field value**: `admin` (change from `user` if it exists)
+7. Click **"Update"** (or the checkmark/save button)
+
+**Result**: The user will now have admin privileges when they log out and log back in!
+
+**Troubleshooting:**
+- ❌ **"Already used by another document"** → The document exists! Click on it to edit instead of creating new
+- ✅ **Document doesn't exist** → Then you can create it with "Add document" using the UID as document ID
+
+#### Method 2: Quick Edit (Recommended - Easiest)
+
+Since documents are auto-created when users register, this is usually the fastest method:
+
+1. Go to **Firestore Database** > **users** collection
+2. **Find the document** - Look for the user's UID in the document list
+   - You can search by scrolling or using the search if available
+   - The document ID is the User UID
+3. **Click on the document** to open it
+4. **Edit the `role` field**:
+   - If `role` exists: Click on its value and change it from `user` to `admin`
+   - If `role` doesn't exist: Click **"Add field"**, name it `role`, type `string`, value `admin`
+5. Click **"Update"** to save
+
+**That's it!** The user will have admin access after they log out and log back in.
+
+#### Method 3: Programmatically (For Developers)
+
+You can use the `setUserRole` function from `services/authService.ts`:
+
+```typescript
+import { setUserRole } from './services/authService';
+
+// Make a user an admin
+await setUserRole('user-uid-here', 'admin');
+
+// Or make them a regular user
+await setUserRole('user-uid-here', 'user');
+```
+
+**Example: Create a simple admin promotion script**
+
+Create a file `scripts/promoteToAdmin.ts`:
+```typescript
+import { setUserRole } from '../services/authService';
+
+// Replace with actual user UID
+const userId = 'your-user-uid-here';
+setUserRole(userId, 'admin')
+  .then(() => console.log('User promoted to admin!'))
+  .catch((error) => console.error('Error:', error));
+```
+
+**How to find User UID:**
+- **Firebase Console**: Authentication > Users > Click on user
+- **In your app**: After login, check `currentUser.id` in the browser console
+- **Programmatically**: After user signs in, use `auth.currentUser?.uid`
+
+**Important Notes:**
+- The `users` collection is automatically created when a user first registers
+- Document ID must match the user's Firebase Auth UID exactly
+- Users must log out and log back in for role changes to take effect
+- Only authenticated users can access their own user document (see Security Rules)
+
+### 5. Set Up Events Persistence
+
+Events are now stored in Firestore and persist even after logging out. To populate initial events:
+
+**Option 1: Add Events Manually (Recommended for Production)**
+1. Go to **Firestore Database** > **events** collection
+2. Click **"Add document"**
+3. Add fields matching the Event structure:
+   - `title` (string): Event name
+   - `date` (string): ISO date string (e.g., "2024-08-15T20:00:00Z")
+   - `venue` (string): Event location
+   - `price` (number): Ticket price
+   - `description` (string): Event description
+   - `duration` (string): Event duration (e.g., "4 hours")
+   - `images` (array): Array of image URLs
+   - `type` (string): "Car", "Bike", or "All"
+   - `featured` (boolean): Whether event is featured
+
+**Option 2: Seed Initial Events (For Development)**
+1. Open your app in the browser
+2. Open the browser console (F12)
+3. The `seedEvents()` function is available (or import it from `scripts/seedEvents.ts`)
+4. Run: `seedEvents()` to populate with sample events
+
+**Note**: Events are publicly readable (no authentication required) so all users can see them. Only admins can add/edit/delete events.
+
+### 6. Security Rules (Recommended)
+Update your Firestore security rules to protect user data and allow public event reading:
+
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Users collection - users can only read/write their own data
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Events collection - public read, admin write
+    match /events/{eventId} {
+      allow read: if true; // Anyone can read events
+      allow write: if request.auth != null && 
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
   }
 }
@@ -87,3 +205,6 @@ service cloud.firestore {
 - ✅ Persistent Authentication State
 - ✅ Protected Routes
 - ✅ Automatic Role Assignment (defaults to 'user')
+- ✅ **Events Persistence in Firestore** (survives logout)
+- ✅ **Real-time Events Updates** (changes sync automatically)
+- ✅ **Image URLs Stored in Firestore** (images persist with events)

@@ -1,7 +1,14 @@
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { Event, Booking, User } from '../types';
-import { mockEvents, mockBookings } from '../data/mockData';
+import { mockBookings } from '../data/mockData';
 import { signIn, signUp, signOutUser, onAuthStateChange } from '../services/authService';
+import { getEvents, addEvent as addEventToFirestore, updateEvent as updateEventInFirestore, deleteEvent as deleteEventFromFirestore, subscribeToEvents } from '../services/eventsService';
+import { seedEvents } from '../scripts/seedEvents';
+
+// Make seedEvents available in browser console for development
+if (typeof window !== 'undefined') {
+  (window as any).seedEvents = seedEvents;
+}
 
 type Theme = 'light' | 'dark';
 
@@ -25,7 +32,7 @@ interface AppContextType {
 export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [events, setEvents] = useState<Event[]>(mockEvents);
+  const [events, setEvents] = useState<Event[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true); // Start with true to wait for auth check
@@ -35,6 +42,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const userPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     return userPrefersDark ? 'dark' : 'light';
   });
+
+  // Load events from Firestore on initialization (works even when logged out)
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const loadedEvents = await getEvents();
+        setEvents(loadedEvents);
+      } catch (error) {
+        console.error('Error loading events:', error);
+        // Keep empty array if loading fails
+        setEvents([]);
+      }
+    };
+
+    loadEvents();
+
+    // Set up real-time listener for events
+    const unsubscribeEvents = subscribeToEvents((updatedEvents) => {
+      setEvents(updatedEvents);
+    });
+
+    return () => {
+      unsubscribeEvents();
+    };
+  }, []);
 
   // Set up auth state listener
   useEffect(() => {
@@ -70,16 +102,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
   
   const addEvent = async (event: Omit<Event, 'id'>) => {
-    const newEvent = { ...event, id: new Date().getTime().toString() };
-    setEvents(prev => [...prev, newEvent]);
+    try {
+      // Add to Firestore - real-time listener will update state automatically
+      await addEventToFirestore(event);
+    } catch (error: any) {
+      console.error('Error adding event:', error);
+      throw new Error(error.message || 'Failed to add event');
+    }
   };
 
   const updateEvent = async (updatedEvent: Event) => {
-    setEvents(prev => prev.map(event => (event.id === updatedEvent.id ? updatedEvent : event)));
+    try {
+      // Update in Firestore - real-time listener will update state automatically
+      await updateEventInFirestore(updatedEvent);
+    } catch (error: any) {
+      console.error('Error updating event:', error);
+      throw new Error(error.message || 'Failed to update event');
+    }
   };
 
   const deleteEvent = async (eventId: string) => {
-    setEvents(prev => prev.filter(event => event.id !== eventId));
+    try {
+      // Delete from Firestore - real-time listener will update state automatically
+      await deleteEventFromFirestore(eventId);
+    } catch (error: any) {
+      console.error('Error deleting event:', error);
+      throw new Error(error.message || 'Failed to delete event');
+    }
   };
 
   const addBooking = async (booking: Omit<Booking, 'id' | 'userId'>): Promise<Booking> => {
