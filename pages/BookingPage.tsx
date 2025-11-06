@@ -9,7 +9,7 @@ const BookingPage: React.FC = () => {
   const navigate = useNavigate();
   const { events, addBooking, currentUser } = useAppContext();
   
-  const [event, setEvent] = useState(events.find(e => e.id === Number(eventId)));
+  const [event, setEvent] = useState(events.find(e => e.id === eventId));
   const [tickets, setTickets] = useState(1);
   const [name, setName] = useState(currentUser?.email.split('@')[0].replace(/\b\w/g, l => l.toUpperCase()) || '');
   const [email, setEmail] = useState(currentUser?.email || '');
@@ -18,7 +18,7 @@ const BookingPage: React.FC = () => {
   const [bookingDetails, setBookingDetails] = useState<Booking | null>(null);
 
   useEffect(() => {
-    const foundEvent = events.find(e => e.id === Number(eventId));
+    const foundEvent = events.find(e => e.id === eventId);
     if (!foundEvent) {
         navigate('/events'); // Redirect if event not found
     }
@@ -32,7 +32,7 @@ const BookingPage: React.FC = () => {
   const coverImage = event.images && event.images.length > 0 ? event.images[0] : 'https://picsum.photos/seed/fallback/800/600';
   const totalPrice = event.price * tickets;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
         alert('You must be logged in to book.');
@@ -42,19 +42,24 @@ const BookingPage: React.FC = () => {
       alert('Please fill all fields and select at least one ticket.');
       return;
     }
-    const newBooking = {
-      eventId: event.id,
-      userName: name,
-      userEmail: email,
-      phone,
-      tickets,
-      totalPrice,
-      bookingDate: new Date().toISOString(),
-      status: 'Confirmed' as 'Confirmed',
-    };
-    addBooking(newBooking);
-    setBookingDetails({ ...newBooking, id: Date.now(), userId: currentUser.id });
-    setIsBooked(true);
+    try {
+        const newBooking = {
+            eventId: event.id,
+            userName: name,
+            userEmail: email,
+            phone,
+            tickets,
+            totalPrice,
+            bookingDate: new Date().toISOString(),
+            status: 'Confirmed' as 'Confirmed',
+        };
+        const createdBooking = await addBooking(newBooking);
+        setBookingDetails(createdBooking);
+        setIsBooked(true);
+    } catch (error) {
+        console.error("Booking failed:", error);
+        alert("There was an issue with your booking. Please try again.");
+    }
   };
   
   if (isBooked && bookingDetails) {

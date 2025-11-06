@@ -1,7 +1,6 @@
 export interface User {
-  id: number;
+  id: string;
   email: string;
-  password: string; // In a real app, this would be a hash
   role: 'user' | 'admin';
 }
 
@@ -12,7 +11,7 @@ export enum EventType {
 }
 
 export interface Event {
-  id: number;
+  id: string;
   title: string;
   date: string;
   venue: string;
@@ -25,9 +24,9 @@ export interface Event {
 }
 
 export interface Booking {
-  id: number;
-  eventId: number;
-  userId: number;
+  id: string;
+  eventId: string;
+  userId: string;
   userName: string;
   userEmail: string;
   phone: string;

@@ -1,14 +1,18 @@
 import { Event, Booking, EventType, User } from '../types';
 
 export const mockUsers: User[] = [
-    { id: 1, email: 'user@example.com', password: 'password', role: 'user' },
-    { id: 2, email: 'admin@example.com', password: 'password', role: 'admin' },
-    { id: 3, email: 'john.doe@example.com', password: 'password123', role: 'user'}
+    // FIX: Changed id from number to string and removed password property not defined in User type.
+    { id: '1', email: 'user@example.com', role: 'user' },
+    // FIX: Changed id from number to string and removed password property not defined in User type.
+    { id: '2', email: 'admin@example.com', role: 'admin' },
+    // FIX: Changed id from number to string and removed password property not defined in User type.
+    { id: '3', email: 'john.doe@example.com', role: 'user'}
 ];
 
 export const mockEvents: Event[] = [
   {
-    id: 1,
+    // FIX: Changed id from number to string.
+    id: '1',
     title: 'MidnightDrift Championship',
     date: '2024-08-15T20:00:00Z',
     venue: 'Apex Racing Circuit',
@@ -24,7 +28,8 @@ export const mockEvents: Event[] = [
     featured: true,
   },
   {
-    id: 2,
+    // FIX: Changed id from number to string.
+    id: '2',
     title: 'Superbike Sprint Series',
     date: '2024-09-05T14:00:00Z',
     venue: 'Velocity Raceway',
@@ -39,7 +44,8 @@ export const mockEvents: Event[] = [
     featured: true,
   },
   {
-    id: 3,
+    // FIX: Changed id from number to string.
+    id: '3',
     title: 'Classic & Custom Car Expo',
     date: '2024-09-21T10:00:00Z',
     venue: 'Grand Exhibition Hall',
@@ -55,7 +61,8 @@ export const mockEvents: Event[] = [
     featured: false,
   },
   {
-    id: 4,
+    // FIX: Changed id from number to string.
+    id: '4',
     title: 'MotoCross Mayhem',
     date: '2024-10-12T11:00:00Z',
     venue: 'Dirt Devil Arena',
@@ -70,7 +77,8 @@ export const mockEvents: Event[] = [
     featured: true,
   },
   {
-    id: 5,
+    // FIX: Changed id from number to string.
+    id: '5',
     title: 'Urban Tuner Night',
     date: '2024-11-02T19:00:00Z',
     venue: 'Cityscape Parkade',
@@ -85,7 +93,8 @@ export const mockEvents: Event[] = [
     featured: false,
   },
    {
-    id: 6,
+    // FIX: Changed id from number to string.
+    id: '6',
     title: 'Vintage Motorcycle Rally',
     date: '2024-11-23T09:00:00Z',
     venue: 'Heritage Valley',
@@ -103,9 +112,10 @@ export const mockEvents: Event[] = [
 
 export const mockBookings: Booking[] = [
   {
-    id: 101,
-    eventId: 2,
-    userId: 3,
+    // FIX: Changed id, eventId, and userId from number to string.
+    id: '101',
+    eventId: '2',
+    userId: '3',
     userName: 'John Doe',
     userEmail: 'john.doe@example.com',
     phone: '123-456-7890',
@@ -115,9 +125,10 @@ export const mockBookings: Booking[] = [
     status: 'Confirmed',
   },
   {
-    id: 102,
-    eventId: 1,
-    userId: 3,
+    // FIX: Changed id, eventId, and userId from number to string.
+    id: '102',
+    eventId: '1',
+    userId: '3',
     userName: 'John Doe',
     userEmail: 'john.doe@example.com',
     phone: '123-456-7890',

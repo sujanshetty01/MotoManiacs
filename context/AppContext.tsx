@@ -9,22 +9,24 @@ interface AppContextType {
   bookings: Booking[];
   currentUser: User | null;
   theme: Theme;
+  isLoading: boolean;
   toggleTheme: () => void;
-  addEvent: (event: Omit<Event, 'id'>) => void;
-  updateEvent: (event: Event) => void;
-  deleteEvent: (eventId: number) => void;
-  addBooking: (booking: Omit<Booking, 'id' | 'userId'>) => void;
-  cancelBooking: (bookingId: number) => void;
+  addEvent: (event: Omit<Event, 'id'>) => Promise<void>;
+  updateEvent: (event: Event) => Promise<void>;
+  deleteEvent: (eventId: string) => Promise<void>;
+  addBooking: (booking: Omit<Booking, 'id' | 'userId'>) => Promise<Booking>;
+  cancelBooking: (bookingId: string) => Promise<void>;
   login: (email: string, password: string) => Promise<User>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [events, setEvents] = useState<Event[]>(mockEvents);
-  const [bookings, setBookings] = useState<Booking[]>(mockBookings);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [theme, setTheme] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('theme') as Theme | null;
     if (savedTheme) return savedTheme;
@@ -42,65 +44,56 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const toggleTheme = () => {
     setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   };
-
-  useEffect(() => {
-    try {
-      const storedUser = sessionStorage.getItem('currentUser');
-      if (storedUser) {
-        setCurrentUser(JSON.parse(storedUser));
-      }
-    } catch (error) {
-      console.error("Failed to parse user from session storage", error);
-      sessionStorage.removeItem('currentUser');
-    }
-  }, []);
-
-  const addEvent = (event: Omit<Event, 'id'>) => {
-    setEvents(prev => [...prev, { ...event, id: Date.now() }]);
+  
+  const addEvent = async (event: Omit<Event, 'id'>) => {
+    const newEvent = { ...event, id: new Date().getTime().toString() };
+    setEvents(prev => [...prev, newEvent]);
   };
 
-  const updateEvent = (updatedEvent: Event) => {
+  const updateEvent = async (updatedEvent: Event) => {
     setEvents(prev => prev.map(event => (event.id === updatedEvent.id ? updatedEvent : event)));
   };
 
-  const deleteEvent = (eventId: number) => {
+  const deleteEvent = async (eventId: string) => {
     setEvents(prev => prev.filter(event => event.id !== eventId));
   };
 
-  const addBooking = (booking: Omit<Booking, 'id' | 'userId'>) => {
+  const addBooking = async (booking: Omit<Booking, 'id' | 'userId'>): Promise<Booking> => {
     if (!currentUser) {
         throw new Error("User must be logged in to make a booking.");
     }
-    const newBooking = {
+    const newBooking: Booking = {
         ...booking,
-        id: Date.now(),
+        id: new Date().getTime().toString(),
         userId: currentUser.id,
     };
     setBookings(prev => [...prev, newBooking]);
+    return newBooking;
   };
   
-  const cancelBooking = (bookingId: number) => {
+  const cancelBooking = async (bookingId: string) => {
     setBookings(prev => prev.map(b => b.id === bookingId ? {...b, status: 'Cancelled'} : b));
   };
 
-  const login = (email: string, password: string): Promise<User> => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => { // Simulate network delay
-        const user = mockUsers.find(u => u.email === email && u.password === password);
-        if (user) {
-          setCurrentUser(user);
-          sessionStorage.setItem('currentUser', JSON.stringify(user));
-          resolve(user);
+  const login = async (email: string, password: string): Promise<User> => {
+    const user = mockUsers.find(u => u.email === email);
+    if (user) {
+        setCurrentUser(user);
+        if (user.role === 'admin') {
+            setBookings(mockBookings);
         } else {
-          reject(new Error('Invalid email or password'));
+            const userBookings = mockBookings.filter(b => b.userId === user.id);
+            setBookings(userBookings);
         }
-      }, 500);
-    });
+        return user;
+    } else {
+      throw new Error("Invalid credentials. Please try again.");
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setCurrentUser(null);
-    sessionStorage.removeItem('currentUser');
+    setBookings([]);
   };
 
   const value = { 
@@ -108,6 +101,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       bookings, 
       currentUser, 
       theme,
+      isLoading,
       toggleTheme,
       addEvent, 
       updateEvent, 
@@ -117,7 +111,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       login, 
       logout 
   };
-
+  
   return (
     <AppContext.Provider value={value}>
       {children}
