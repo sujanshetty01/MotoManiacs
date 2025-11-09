@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  motomaniacs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Firebase Configuration (passed at build time)
+        - VITE_FIREBASE_API_KEY=${VITE_FIREBASE_API_KEY}
+        - VITE_FIREBASE_AUTH_DOMAIN=${VITE_FIREBASE_AUTH_DOMAIN}
+        - VITE_FIREBASE_PROJECT_ID=${VITE_FIREBASE_PROJECT_ID}
+        - VITE_FIREBASE_STORAGE_BUCKET=${VITE_FIREBASE_STORAGE_BUCKET}
+        - VITE_FIREBASE_MESSAGING_SENDER_ID=${VITE_FIREBASE_MESSAGING_SENDER_ID}
+        - VITE_FIREBASE_APP_ID=${VITE_FIREBASE_APP_ID}
+        # Gemini API Key (optional)
+        - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    container_name: motomaniacs-app
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    networks:
+      - motomaniacs-network
+    # Health check
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  motomaniacs-network:
+    driver: bridge

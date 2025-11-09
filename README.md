@@ -38,6 +38,113 @@ View your app in AI Studio: https://ai.studio/apps/drive/1PenTzQoOi9U6zCO5nu8Ptv
    npm run dev
    ```
 
+## Run with Docker
+
+**Prerequisites:** Docker and Docker Compose installed on your system
+
+### Quick Start
+
+1. **Create environment file:**
+   Create a `.env` file in the root directory with your Firebase configuration:
+   ```env
+   VITE_FIREBASE_API_KEY=your-api-key
+   VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your-project-id
+   VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+   VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
+   GEMINI_API_KEY=your-gemini-api-key-here
+   ```
+
+2. **Build and run with Docker Compose:**
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Access the application:**
+   Open your browser and navigate to `http://localhost:3000`
+
+### Docker Commands
+
+- **Start the container:**
+  ```bash
+  docker-compose up -d
+  ```
+
+- **Stop the container:**
+  ```bash
+  docker-compose down
+  ```
+
+- **View logs:**
+  ```bash
+  docker-compose logs -f
+  ```
+
+- **Rebuild the container (after code changes):**
+  ```bash
+  docker-compose up -d --build
+  ```
+
+- **Stop and remove containers, networks, and volumes:**
+  ```bash
+  docker-compose down -v
+  ```
+
+### Docker Architecture
+
+The Docker setup uses a **multi-stage build**:
+- **Stage 1 (Builder):** Uses Node.js to install dependencies and build the React application
+- **Stage 2 (Production):** Uses Nginx to serve the built static files
+
+### Environment Variables
+
+All environment variables are passed as build arguments to the Docker container. Make sure your `.env` file contains all required variables before building.
+
+**Note:** Since Vite embeds environment variables at build time, you need to rebuild the Docker image whenever you change environment variables:
+```bash
+docker-compose up -d --build
+```
+
+### Running on Other Devices
+
+To run this application on another device:
+
+1. **Copy the repository** to the target device (via git clone, USB, etc.)
+
+2. **Install Docker and Docker Compose** on the target device:
+   - **Windows:** Download [Docker Desktop](https://www.docker.com/products/docker-desktop)
+   - **macOS:** Download [Docker Desktop](https://www.docker.com/products/docker-desktop)
+   - **Linux:** Follow [Docker installation guide](https://docs.docker.com/engine/install/)
+
+3. **Create the `.env` file** with your Firebase configuration (see above)
+
+4. **Navigate to the project directory:**
+   ```bash
+   cd motomaniacs
+   ```
+
+5. **Build and run:**
+   ```bash
+   docker-compose up -d
+   ```
+
+6. **Access the application** at `http://localhost:3000` (or `http://<device-ip>:3000` from other devices on the same network)
+
+### Troubleshooting
+
+- **Port already in use:** If port 3000 is already in use, modify the port mapping in `docker-compose.yml`:
+  ```yaml
+  ports:
+    - "8080:80"  # Change 3000 to any available port
+  ```
+
+- **Build fails:** Make sure all environment variables are set in your `.env` file
+
+- **Container won't start:** Check logs with `docker-compose logs` to see error messages
+
+- **Changes not reflecting:** Rebuild the container with `docker-compose up -d --build`
+
 ## Firebase Setup Instructions
 
 ### 1. Create a Firebase Project
