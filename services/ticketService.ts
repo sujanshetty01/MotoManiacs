@@ -28,7 +28,7 @@ const generateQRCodeDataURL = async (bookingId: string): Promise<string> => {
 const generateTicketHTML = async (booking: Booking, event: Event): Promise<string> => {
   const eventDate = new Date(event.date);
   const bookingDate = new Date(booking.bookingDate);
-  const bookingId = booking.id.substring(0, 8).toUpperCase();
+  const bookingId = String(booking.id || 'booking').substring(0, 8).toUpperCase();
   
   // Format dates
   const formattedEventDate = eventDate.toLocaleString('en-US', { 
@@ -52,7 +52,10 @@ const generateTicketHTML = async (booking: Booking, event: Event): Promise<strin
     : 'https://picsum.photos/seed/fallback/800/600';
   
   // Escape HTML to prevent XSS
-  const escapeHtml = (text: string): string => {
+  const escapeHtml = (text: any): string => {
+    // Convert to string and handle null/undefined
+    if (text == null) return '';
+    const textStr = String(text);
     const map: { [key: string]: string } = {
       '&': '&amp;',
       '<': '&lt;',
@@ -60,7 +63,7 @@ const generateTicketHTML = async (booking: Booking, event: Event): Promise<strin
       '"': '&quot;',
       "'": '&#039;'
     };
-    return text.replace(/[&<>"']/g, (m) => map[m]);
+    return textStr.replace(/[&<>"']/g, (m) => map[m]);
   };
   
   const safeEventTitle = escapeHtml(event.title);
@@ -74,7 +77,7 @@ const generateTicketHTML = async (booking: Booking, event: Event): Promise<strin
   // Generate QR code data URL
   const qrDataUrl = await generateQRCodeDataURL(booking.id);
   const qrCodeHTML = qrDataUrl 
-    ? `<img src="${qrDataUrl}" alt="QR Code for Booking ${bookingId}" style="width: 150px; height: 150px; border: 2px solid #e5e7eb; border-radius: 10px; padding: 10px; background: white;">`
+    ? `<img src="${qrDataUrl}" alt="QR Code for Booking ${bookingId}" style="width: 180px; height: 180px; display: block;">`
     : `<div class="qr-placeholder">Booking ID<br>${bookingId}</div>`;
 
   return `
@@ -84,6 +87,7 @@ const generateTicketHTML = async (booking: Booking, event: Event): Promise<strin
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ticket - ${safeEventTitle}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -92,9 +96,9 @@ const generateTicketHTML = async (booking: Booking, event: Event): Promise<strin
         }
         
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 40px 20px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -102,145 +106,205 @@ const generateTicketHTML = async (booking: Booking, event: Event): Promise<strin
         }
         
         .ticket-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            max-width: 800px;
             width: 100%;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.06);
             overflow: hidden;
-            position: relative;
         }
         
-        .ticket-header {
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            position: relative;
-        }
-        
-        .ticket-header::after {
+        .ticket-container::before {
             content: '';
             position: absolute;
-            bottom: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 30px;
-            height: 30px;
-            background: white;
-            border-radius: 50%;
-            box-shadow: 0 0 0 10px white;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 50%, #1e3a8a 100%);
         }
         
-        .ticket-header h1 {
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+        .ticket-content {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 0;
+            min-height: 500px;
         }
         
-        .ticket-header p {
-            font-size: 14px;
-            opacity: 0.9;
+        .ticket-main {
+            padding: 50px 45px;
+            position: relative;
         }
         
-        .ticket-body {
-            padding: 40px 30px;
+        .event-image-section {
+            margin-bottom: 35px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
         
         .event-image {
             width: 100%;
             height: 200px;
             object-fit: cover;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: block;
+        }
+        
+        .ticket-qr-section {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            padding: 50px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 280px;
+            position: relative;
+        }
+        
+        .ticket-qr-section::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 10px,
+                rgba(255, 255, 255, 0.1) 10px,
+                rgba(255, 255, 255, 0.1) 20px
+            );
         }
         
         .event-title {
-            font-size: 24px;
-            font-weight: bold;
-            color: #1f2937;
-            margin-bottom: 20px;
-            text-align: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 36px;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-bottom: 8px;
+            line-height: 1.2;
+            letter-spacing: -0.5px;
         }
         
-        .ticket-info {
-            display: grid;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        .info-label {
-            font-weight: 600;
-            color: #6b7280;
-            font-size: 14px;
-        }
-        
-        .info-value {
-            font-weight: bold;
-            color: #1f2937;
-            font-size: 14px;
-            text-align: right;
-        }
-        
-        .booking-id {
-            background: #f3f4f6;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            margin-top: 20px;
-        }
-        
-        .booking-id-label {
-            font-size: 12px;
-            color: #6b7280;
-            margin-bottom: 5px;
-        }
-        
-        .booking-id-value {
-            font-size: 18px;
-            font-weight: bold;
-            color: #dc2626;
-            font-family: 'Courier New', monospace;
+        .event-subtitle {
+            font-size: 13px;
+            font-weight: 500;
+            color: #64748b;
+            text-transform: uppercase;
             letter-spacing: 2px;
+            margin-bottom: 40px;
+        }
+        
+        .ticket-details {
+            display: grid;
+            gap: 28px;
+            margin-bottom: 40px;
+        }
+        
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .detail-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+        
+        .detail-value {
+            font-size: 16px;
+            font-weight: 500;
+            color: #1e293b;
+            line-height: 1.4;
+        }
+        
+        .detail-value-large {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e3a8a;
+        }
+        
+        .booking-id-section {
+            margin-top: 35px;
+            padding-top: 30px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .booking-id-display {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: #64748b;
+            letter-spacing: 3px;
+            text-align: center;
+            padding: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+        }
+        
+        .qr-code-wrapper {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .qr-code-wrapper img {
+            display: block;
+            width: 180px;
+            height: 180px;
+        }
+        
+        .qr-label {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-align: center;
+            margin-top: 15px;
         }
         
         .ticket-footer {
-            background: #f9fafb;
-            padding: 20px 30px;
+            background: #f8fafc;
+            padding: 25px 45px;
+            border-top: 1px solid #e2e8f0;
             text-align: center;
-            border-top: 2px dashed #e5e7eb;
         }
         
-        .ticket-footer p {
-            font-size: 12px;
-            color: #6b7280;
+        .ticket-footer-text {
+            font-size: 11px;
+            color: #94a3b8;
             line-height: 1.6;
         }
         
+        .ticket-footer-text strong {
+            color: #64748b;
+            font-weight: 600;
+        }
+        
         .qr-placeholder {
-            width: 120px;
-            height: 120px;
-            background: #f3f4f6;
-            border: 2px dashed #d1d5db;
-            border-radius: 10px;
+            width: 180px;
+            height: 180px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin: 20px auto;
+            color: rgba(255, 255, 255, 0.7);
             font-size: 12px;
-            color: #9ca3af;
             text-align: center;
-            padding: 10px;
+            padding: 15px;
         }
         
         @media print {
@@ -251,7 +315,14 @@ const generateTicketHTML = async (booking: Booking, event: Event): Promise<strin
             
             .ticket-container {
                 box-shadow: none;
+                border: 1px solid #e2e8f0;
                 max-width: 100%;
+                page-break-inside: avoid;
+            }
+            
+            .ticket-content {
+                display: grid;
+                grid-template-columns: 1fr auto;
             }
             
             @page {
@@ -260,124 +331,80 @@ const generateTicketHTML = async (booking: Booking, event: Event): Promise<strin
             }
         }
         
-        .status-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        
-        .status-confirmed {
-            background: #10b981;
-            color: white;
-        }
-        
-        .status-cancelled {
-            background: #ef4444;
-            color: white;
+        @media (max-width: 768px) {
+            .ticket-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .ticket-qr-section {
+                min-width: 100%;
+                padding: 40px;
+            }
+            
+            .ticket-qr-section::before {
+                display: none;
+            }
+            
+            .ticket-main {
+                padding: 40px 30px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="ticket-container">
-        <div class="ticket-header">
-            <h1>MotoManiacs</h1>
-            <p>Event Ticket</p>
-        </div>
-        
-        <div class="ticket-body">
-            <img src="${eventImage}" alt="${safeEventTitle}" class="event-image" onerror="this.src='https://picsum.photos/seed/fallback/800/600'">
-            
-            <h2 class="event-title">${safeEventTitle}</h2>
-            
-            <div class="ticket-info">
-                <div class="info-row">
-                    <span class="info-label">Date & Time</span>
-                    <span class="info-value">${formattedEventDate}</span>
+        <div class="ticket-content">
+            <div class="ticket-main">
+                <div class="event-image-section">
+                    <img src="${eventImage}" alt="${safeEventTitle}" class="event-image" onerror="this.src='https://picsum.photos/seed/fallback/800/600'">
                 </div>
                 
-                <div class="info-row">
-                    <span class="info-label">Venue</span>
-                    <span class="info-value">${safeVenue}</span>
+                <h1 class="event-title">${safeEventTitle}</h1>
+                <div class="event-subtitle">Event Ticket</div>
+                
+                <div class="ticket-details">
+                    <div class="detail-item">
+                        <div class="detail-label">Booking ID</div>
+                        <div class="detail-value-large">${bookingId}</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <div class="detail-label">Date & Time</div>
+                        <div class="detail-value">${formattedEventDate}</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <div class="detail-label">Venue</div>
+                        <div class="detail-value">${safeVenue}</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <div class="detail-label">Seat Number</div>
+                        <div class="detail-value">General Admission (${booking.tickets} ${booking.tickets === 1 ? 'Ticket' : 'Tickets'})</div>
+                    </div>
                 </div>
                 
-                <div class="info-row">
-                    <span class="info-label">Event Type</span>
-                    <span class="info-value">${event.type}</span>
-                </div>
-                
-                <div class="info-row">
-                    <span class="info-label">Duration</span>
-                    <span class="info-value">${safeDuration}</span>
-                </div>
-                
-                <div class="info-row">
-                    <span class="info-label">Number of Tickets</span>
-                    <span class="info-value">${booking.tickets}</span>
-                </div>
-                
-                <div class="info-row">
-                    <span class="info-label">Total Price</span>
-                    <span class="info-value">$${booking.totalPrice.toFixed(2)}</span>
-                </div>
-                
-                <div class="info-row">
-                    <span class="info-label">Status</span>
-                    <span class="info-value">
-                        <span class="status-badge status-${booking.status.toLowerCase()}">${safeStatus}</span>
-                    </span>
-                </div>
-                
-                <div class="info-row">
-                    <span class="info-label">Booked By</span>
-                    <span class="info-value">${safeUserName}</span>
-                </div>
-                
-                <div class="info-row">
-                    <span class="info-label">Email</span>
-                    <span class="info-value">${safeUserEmail}</span>
-                </div>
-                
-                ${booking.phone ? `
-                <div class="info-row">
-                    <span class="info-label">Phone</span>
-                    <span class="info-value">${safePhone}</span>
-                </div>
-                ` : ''}
-                
-                <div class="info-row">
-                    <span class="info-label">Booking Date</span>
-                    <span class="info-value">${formattedBookingDate}</span>
+                <div class="booking-id-section">
+                    <div class="detail-label" style="margin-bottom: 8px;">Booking Reference</div>
+                    <div class="booking-id-display">${booking.id}</div>
                 </div>
             </div>
             
-            <div class="qr-code-container" style="text-align: center; margin: 20px auto;">
-                ${qrCodeHTML}
-            </div>
-            
-            <div class="booking-id">
-                <div class="booking-id-label">Booking Reference</div>
-                <div class="booking-id-value">${bookingId}</div>
+            <div class="ticket-qr-section">
+                <div class="qr-code-wrapper">
+                    ${qrCodeHTML}
+                </div>
+                <div class="qr-label">Scan for Entry</div>
             </div>
         </div>
         
         <div class="ticket-footer">
-            <p>
+            <p class="ticket-footer-text">
                 <strong>Important:</strong> Please present this ticket at the venue entrance.<br>
-                Keep this ticket safe and do not share it with others.<br>
-                For any queries, contact us at support@motomaniacs.com
+                Keep this ticket safe and do not share it with others.
             </p>
         </div>
     </div>
-    
-    <script>
-        // Auto-print when page loads (optional)
-        // window.onload = function() {
-        //     window.print();
-        // };
-    </script>
 </body>
 </html>
   `;
@@ -412,7 +439,9 @@ export const downloadTicket = async (booking: Booking, event: Event): Promise<vo
       // Fallback: if popup is blocked, create a download link
       const link = document.createElement('a');
       link.href = url;
-      link.download = `ticket-${event.title.replace(/\s+/g, '-')}-${booking.id.substring(0, 8)}.html`;
+      const safeTitle = String(event.title || 'event').replace(/\s+/g, '-');
+      const safeBookingId = String(booking.id || 'booking').substring(0, 8);
+      link.download = `ticket-${safeTitle}-${safeBookingId}.html`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -520,8 +549,10 @@ export const downloadTicketAsPDF = async (booking: Booking, event: Event): Promi
     
     pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidthFinal, imgHeightFinal);
     
-    // Generate filename
-    const filename = `ticket-${event.title.replace(/\s+/g, '-')}-${booking.id.substring(0, 8)}.pdf`;
+    // Generate filename with safe string conversion
+    const safeTitle = String(event.title || 'event').replace(/\s+/g, '-');
+    const safeBookingId = String(booking.id || 'booking').substring(0, 8);
+    const filename = `ticket-${safeTitle}-${safeBookingId}.pdf`;
     
     // Download PDF
     pdf.save(filename);
