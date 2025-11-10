@@ -269,14 +269,6 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => Pro
         featured: event?.featured || false
     });
     const [newImageUrl, setNewImageUrl] = useState('');
-    const [autoGenerateImage, setAutoGenerateImage] = useState(!event); // Auto-generate for new events
-    const [imageGenConfig, setImageGenConfig] = useState({
-        style: 'photorealistic' as 'photorealistic' | 'digital-art' | 'anime' | 'illustration' | 'cinematic',
-        aspectRatio: '16:9' as '16:9' | '4:3' | '1:1' | '3:4' | '9:16',
-        safetyFilter: 'moderate' as 'strict' | 'moderate' | 'permissive',
-    });
-    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-    const [imageGenError, setImageGenError] = useState<string | null>(null);
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -308,91 +300,12 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => Pro
         setFormData(prev => ({ ...prev, images: [urlToSet, ...prev.images.filter(url => url !== urlToSet)] }));
     };
 
-    const handleGenerateImage = async () => {
-        if (!formData.description || !formData.title) {
-            alert('Please provide a title and description to generate an image.');
-            return;
-        }
-
-        setIsGeneratingImage(true);
-        setImageGenError(null);
-
-        try {
-            const { generateEventImageAuto } = await import('../services/imageGenerationService');
-            const result = await generateEventImageAuto(
-                formData.title,
-                formData.description,
-                formData.type,
-                formData.venue,
-                {
-                    style: imageGenConfig.style,
-                    aspectRatio: imageGenConfig.aspectRatio,
-                    safetyFilter: imageGenConfig.safetyFilter,
-                    quality: 'high',
-                }
-            );
-
-            if (result.success && result.imageUrl) {
-                // Add generated image as the first image (cover)
-                setFormData(prev => ({
-                    ...prev,
-                    images: [result.imageUrl, ...prev.images],
-                }));
-                setImageGenError(null);
-            } else {
-                setImageGenError(result.error || 'Failed to generate image. Please try again or add images manually.');
-            }
-        } catch (error: any) {
-            console.error('Error generating image:', error);
-            setImageGenError(error.message || 'Failed to generate image. Please try again.');
-        } finally {
-            setIsGeneratingImage(false);
-        }
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        // Auto-generate image if enabled and no images exist
-        if (autoGenerateImage && formData.images.length === 0 && formData.description && formData.title) {
-            setIsGeneratingImage(true);
-            try {
-                const { generateEventImageAuto } = await import('../services/imageGenerationService');
-                const result = await generateEventImageAuto(
-                    formData.title,
-                    formData.description,
-                    formData.type,
-                    formData.venue,
-                    {
-                        style: imageGenConfig.style,
-                        aspectRatio: imageGenConfig.aspectRatio,
-                        safetyFilter: imageGenConfig.safetyFilter,
-                        quality: 'high',
-                    }
-                );
-
-                if (result.success && result.imageUrl) {
-                    formData.images = [result.imageUrl];
-                } else {
-                    // If generation fails, require manual image
-                    setIsGeneratingImage(false);
-                    alert(result.error || 'Failed to auto-generate image. Please add at least one image manually.');
-                    return;
-                }
-            } catch (error: any) {
-                setIsGeneratingImage(false);
-                alert('Failed to auto-generate image. Please add at least one image manually.');
-                return;
-            } finally {
-                setIsGeneratingImage(false);
-            }
-        }
-
         if (formData.images.length === 0) {
             alert("Please add at least one image for the event.");
             return;
         }
-        
         const dataToSave = { ...formData, date: new Date(formData.date).toISOString() };
         if (event) {
             await onSave({ ...dataToSave, id: event.id });
@@ -425,103 +338,6 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => Pro
                         </div>
                     </div>
 
-                    {/* Auto-Generate Image Section */}
-                    {!event && (
-                        <div className="md:col-span-2 border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-                            <div className="flex items-center mb-4">
-                                <input 
-                                    id="autoGenerateImage" 
-                                    type="checkbox" 
-                                    checked={autoGenerateImage} 
-                                    onChange={(e) => setAutoGenerateImage(e.target.checked)} 
-                                    className="h-4 w-4 text-red-600 bg-gray-300 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-red-500" 
-                                />
-                                <label htmlFor="autoGenerateImage" className="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Auto-generate image from description (Nano Banana AI)
-                                </label>
-                            </div>
-                            
-                            {autoGenerateImage && (
-                                <div className="ml-6 space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Style</label>
-                                            <select 
-                                                value={imageGenConfig.style} 
-                                                onChange={(e) => setImageGenConfig(prev => ({ ...prev, style: e.target.value as any }))}
-                                                className="w-full bg-white dark:bg-gray-700 p-2 rounded border border-gray-300 dark:border-gray-600 text-sm"
-                                            >
-                                                <option value="photorealistic">Photorealistic</option>
-                                                <option value="digital-art">Digital Art</option>
-                                                <option value="anime">Anime</option>
-                                                <option value="illustration">Illustration</option>
-                                                <option value="cinematic">Cinematic</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Aspect Ratio</label>
-                                            <select 
-                                                value={imageGenConfig.aspectRatio} 
-                                                onChange={(e) => setImageGenConfig(prev => ({ ...prev, aspectRatio: e.target.value as any }))}
-                                                className="w-full bg-white dark:bg-gray-700 p-2 rounded border border-gray-300 dark:border-gray-600 text-sm"
-                                            >
-                                                <option value="16:9">16:9 (Widescreen)</option>
-                                                <option value="4:3">4:3 (Standard)</option>
-                                                <option value="1:1">1:1 (Square)</option>
-                                                <option value="3:4">3:4 (Portrait)</option>
-                                                <option value="9:16">9:16 (Vertical)</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Safety Filter</label>
-                                            <select 
-                                                value={imageGenConfig.safetyFilter} 
-                                                onChange={(e) => setImageGenConfig(prev => ({ ...prev, safetyFilter: e.target.value as any }))}
-                                                className="w-full bg-white dark:bg-gray-700 p-2 rounded border border-gray-300 dark:border-gray-600 text-sm"
-                                            >
-                                                <option value="strict">Strict</option>
-                                                <option value="moderate">Moderate</option>
-                                                <option value="permissive">Permissive</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={handleGenerateImage}
-                                        disabled={isGeneratingImage || !formData.description || !formData.title}
-                                        className="mt-2 bg-purple-600 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-700 transition-colors duration-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                    >
-                                        {isGeneratingImage ? (
-                                            <>
-                                                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                                Generating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                                Generate Image Now
-                                            </>
-                                        )}
-                                    </button>
-                                    {imageGenError && (
-                                        <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
-                                            <p className="text-xs text-red-600 dark:text-red-400 font-medium mb-1">Error:</p>
-                                            <p className="text-xs text-red-600 dark:text-red-400 whitespace-pre-line">{imageGenError}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                                💡 Tip: Make sure you've set up the image generation proxy endpoint. See IMAGE_GENERATION_SETUP.md for instructions.
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
                     <div>
                         <h3 className="text-lg font-semibold mb-2 mt-2 border-t border-gray-200 dark:border-gray-700 pt-4">Event Images</h3>
                         <div className="flex gap-2 mb-4">
@@ -545,9 +361,9 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => Pro
                     </div>
 
                     <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <Button type="button" variant="secondary" onClick={onClose} disabled={isSaving || isGeneratingImage}>Cancel</Button>
-                        <Button type="submit" disabled={isSaving || isGeneratingImage}>
-                            {isGeneratingImage ? 'Generating Image...' : isSaving ? 'Saving to Firebase...' : 'Save Event'}
+                        <Button type="button" variant="secondary" onClick={onClose} disabled={isSaving}>Cancel</Button>
+                        <Button type="submit" disabled={isSaving}>
+                            {isSaving ? 'Saving to Firebase...' : 'Save Event'}
                         </Button>
                     </div>
                 </form>
