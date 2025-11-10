@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAppContext } from '../hooks/useAppContext';
-import EventCard from '../components/EventCard';
+import FeaturedEventsCarousel from '../components/FeaturedEventsCarousel';
 import Button from '../components/Button';
 
 const HomePage: React.FC = () => {
     const { events } = useAppContext();
-    const featuredEvents = events.filter(event => event.featured).slice(0, 3);
+    const featuredEvents = events.filter(event => event.featured);
 
     return (
         <div className="animate-fade-in">
@@ -68,19 +68,7 @@ const HomePage: React.FC = () => {
                             Discover our handpicked selection of the most exciting motorsport events
                         </p>
                     </div>
-                    {featuredEvents.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-                            {featuredEvents.map((event, index) => (
-                                <div key={event.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
-                                    <EventCard event={event} />
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-16">
-                            <p className="text-xl text-gray-500 dark:text-gray-400">No featured events available at the moment.</p>
-                        </div>
-                    )}
+                    <FeaturedEventsCarousel events={featuredEvents} />
                     <div className="text-center mt-12">
                         <Link to="/events">
                             <Button size="lg" variant="secondary" className="group transform transition-all duration-300 hover:scale-105 px-8">

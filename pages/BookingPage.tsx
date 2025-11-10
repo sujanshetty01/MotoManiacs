@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../hooks/useAppContext';
 import Button from '../components/Button';
+import QRCode from '../components/QRCode';
+import { downloadTicketAsPDF } from '../services/ticketService';
 import { Booking } from '../types';
 
 const BookingPage: React.FC = () => {
@@ -72,6 +74,14 @@ const BookingPage: React.FC = () => {
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-8 max-w-2xl mx-auto">
           <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">{event.title}</h2>
           <p className="text-gray-500 dark:text-gray-400 mb-6">{new Date(event.date).toLocaleString()}</p>
+          
+          {/* QR Code Display */}
+          <div className="flex flex-col items-center mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Scan for quick check-in</p>
+            <QRCode value={bookingDetails.id} size={180} />
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-3 font-mono">{bookingDetails.id.substring(0, 8).toUpperCase()}</p>
+          </div>
+          
           <div className="text-left space-y-3">
              <p><strong className="text-gray-600 dark:text-gray-300">Booking ID:</strong> {bookingDetails.id}</p>
              <p><strong className="text-gray-600 dark:text-gray-300">Name:</strong> {bookingDetails.userName}</p>
@@ -79,7 +89,20 @@ const BookingPage: React.FC = () => {
              <p><strong className="text-gray-600 dark:text-gray-300">Total Price:</strong> ${bookingDetails.totalPrice.toFixed(2)}</p>
           </div>
           <p className="mt-6 text-gray-500 dark:text-gray-500">A confirmation email has been sent to {bookingDetails.userEmail}.</p>
-          <Button onClick={() => navigate('/dashboard')} className="mt-8">Go to Dashboard</Button>
+          
+          {/* Download PDF Button */}
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+            <Button 
+              onClick={async () => await downloadTicketAsPDF(bookingDetails, event)} 
+              className="bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              Download Ticket (PDF)
+            </Button>
+            <Button onClick={() => navigate('/dashboard')} variant="secondary">Go to Dashboard</Button>
+          </div>
         </div>
       </div>
     );

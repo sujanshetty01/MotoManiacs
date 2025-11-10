@@ -1,13 +1,4 @@
-import { Event, Booking, EventType, User } from '../types';
-
-export const mockUsers: User[] = [
-    // FIX: Changed id from number to string and removed password property not defined in User type.
-    { id: '1', email: 'user@example.com', role: 'user' },
-    // FIX: Changed id from number to string and removed password property not defined in User type.
-    { id: '2', email: 'admin@example.com', role: 'admin' },
-    // FIX: Changed id from number to string and removed password property not defined in User type.
-    { id: '3', email: 'john.doe@example.com', role: 'user'}
-];
+import { Event, EventType } from '../types';
 
 export const mockEvents: Event[] = [
   {
@@ -107,34 +98,5 @@ export const mockEvents: Event[] = [
     ],
     type: EventType.Bike,
     featured: false,
-  },
-];
-
-export const mockBookings: Booking[] = [
-  {
-    // FIX: Changed id, eventId, and userId from number to string.
-    id: '101',
-    eventId: '2',
-    userId: '3',
-    userName: 'John Doe',
-    userEmail: 'john.doe@example.com',
-    phone: '123-456-7890',
-    tickets: 2,
-    totalPrice: 120,
-    bookingDate: '2024-07-10T10:00:00Z',
-    status: 'Confirmed',
-  },
-  {
-    // FIX: Changed id, eventId, and userId from number to string.
-    id: '102',
-    eventId: '1',
-    userId: '3',
-    userName: 'John Doe',
-    userEmail: 'john.doe@example.com',
-    phone: '123-456-7890',
-    tickets: 1,
-    totalPrice: 75,
-    bookingDate: '2024-07-11T12:30:00Z',
-    status: 'Confirmed',
   },
 ];

@@ -22,7 +22,6 @@
      VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
      VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
      ```
-   - See `.env.example` for reference
 
 3. Run the app:
    ```bash
