@@ -12,9 +12,6 @@ COPY package.json package-lock.json ./
 # Install dependencies
 RUN npm ci
 
-# Copy source code
-COPY . .
-
 # Build arguments for environment variables
 # These are injected at build time by Vite
 ARG VITE_FIREBASE_API_KEY
@@ -26,6 +23,7 @@ ARG VITE_FIREBASE_APP_ID
 ARG GEMINI_API_KEY
 
 # Set environment variables for build
+# Vite's loadEnv will pick these up during build
 ENV VITE_FIREBASE_API_KEY=${VITE_FIREBASE_API_KEY}
 ENV VITE_FIREBASE_AUTH_DOMAIN=${VITE_FIREBASE_AUTH_DOMAIN}
 ENV VITE_FIREBASE_PROJECT_ID=${VITE_FIREBASE_PROJECT_ID}
@@ -34,7 +32,11 @@ ENV VITE_FIREBASE_MESSAGING_SENDER_ID=${VITE_FIREBASE_MESSAGING_SENDER_ID}
 ENV VITE_FIREBASE_APP_ID=${VITE_FIREBASE_APP_ID}
 ENV GEMINI_API_KEY=${GEMINI_API_KEY}
 
+# Copy source code (after setting env vars for better caching)
+COPY . .
+
 # Build the application
+# Vite will use the environment variables set above via loadEnv
 RUN npm run build
 
 # Stage 2: Serve the application with Nginx

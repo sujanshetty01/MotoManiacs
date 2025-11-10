@@ -2,18 +2,23 @@
 node_modules
 npm-debug.log
 yarn-error.log
+# Note: package-lock.json is needed for npm ci, so don't exclude it
 
 # Build output
 dist
 build
 .next
 out
+.vite
 
-# Environment variables
+# Environment variables (these are passed as build args instead)
 .env
 .env.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
 
 # IDE
@@ -26,13 +31,14 @@ out
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Git
 .git
 .gitignore
 .gitattributes
 
-# Docker
+# Docker (exclude to avoid recursion)
 Dockerfile
 docker-compose.yml
 .dockerignore
@@ -40,12 +46,21 @@ docker-compose.yml
 # Documentation
 README.md
 *.md
+CHANGELOG.md
+LICENSE
 
 # Test files
 coverage
 .nyc_output
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
 
 # Misc
 *.log
 .cache
+.temp
+.tmp
 
