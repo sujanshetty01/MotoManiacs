@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import Button from '../components/Button';
 import { Event, EventType } from '../types';
+import CMSManagement from '../components/CMSManagement';
 
-type Tab = 'events' | 'bookings';
+type Tab = 'events' | 'bookings' | 'cms';
 
 const StatCard: React.FC<{ title: string; value: string | number }> = ({ title, value }) => (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
@@ -108,6 +109,7 @@ const AdminDashboardPage: React.FC = () => {
             <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
                 <button onClick={() => setActiveTab('events')} className={`py-2 px-4 font-semibold transition-colors ${activeTab === 'events' ? 'text-red-500 border-b-2 border-red-500' : 'text-gray-500 dark:text-gray-400'}`}>Manage Events</button>
                 <button onClick={() => setActiveTab('bookings')} className={`py-2 px-4 font-semibold transition-colors ${activeTab === 'bookings' ? 'text-red-500 border-b-2 border-red-500' : 'text-gray-500 dark:text-gray-400'}`}>View Bookings</button>
+                <button onClick={() => setActiveTab('cms')} className={`py-2 px-4 font-semibold transition-colors ${activeTab === 'cms' ? 'text-red-500 border-b-2 border-red-500' : 'text-gray-500 dark:text-gray-400'}`}>CMS Content</button>
             </div>
 
             {activeTab === 'events' && (
@@ -228,6 +230,7 @@ const AdminDashboardPage: React.FC = () => {
                     )}
                 </div>
             )}
+            {activeTab === 'cms' && <CMSManagement />}
             {isModalOpen && <EventModal event={editingEvent} onSave={handleSaveEvent} onClose={() => setIsModalOpen(false)} isSaving={isSaving} />}
         </div>
     );

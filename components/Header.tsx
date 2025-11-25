@@ -29,11 +29,6 @@ const Header: React.FC = () => {
         }
     };
 
-    const handleLogin = () => {
-        navigate('/');
-        setIsOpen(false);
-    }
-
     const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
         `block py-2 pr-4 pl-3 uppercase tracking-wider transition-all duration-300 font-semibold relative ${
             isActive 
@@ -68,12 +63,14 @@ const Header: React.FC = () => {
                             </svg>
                         </Button>
                     ) : (
-                        <Button onClick={handleLogin} size="sm" className="group">
-                            Login
-                            <svg className="inline-block ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                            </svg>
-                        </Button>
+                        <Link to="/login">
+                            <Button size="sm" className="group">
+                                Login
+                                <svg className="inline-block ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                            </Button>
+                        </Link>
                     )}
                     <ThemeToggleButton />
                 </div>
@@ -104,7 +101,9 @@ const Header: React.FC = () => {
                         </div>
                     ): (
                         <div className="p-2">
-                            <Button onClick={handleLogin} size="sm" className="w-full">Login</Button>
+                            <Link to="/login" onClick={()=>setIsOpen(false)}>
+                                <Button size="sm" className="w-full">Login</Button>
+                            </Link>
                         </div>
                     )}
                 </div>

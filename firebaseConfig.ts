@@ -13,6 +13,10 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:123456789:web:abcdef"
 };
 
+if (firebaseConfig.apiKey === "your-api-key") {
+  console.error("CRITICAL ERROR: Firebase API Key is not set! Please check your .env file.");
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
