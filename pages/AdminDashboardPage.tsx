@@ -17,6 +17,9 @@ const AdminDashboardPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>('events');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     
     const totalRevenue = bookings
         .filter(b => b.status === 'Confirmed')
@@ -25,20 +28,55 @@ const AdminDashboardPage: React.FC = () => {
     const openAddModal = () => {
         setEditingEvent(null);
         setIsModalOpen(true);
+        setError(null);
+        setSuccessMessage(null);
     };
 
     const openEditModal = (event: Event) => {
         setEditingEvent(event);
         setIsModalOpen(true);
+        setError(null);
+        setSuccessMessage(null);
     };
     
-    const handleSaveEvent = (eventData: Event | Omit<Event, 'id'>) => {
-        if ('id' in eventData) {
-            updateEvent(eventData);
-        } else {
-            addEvent(eventData);
+    const handleSaveEvent = async (eventData: Event | Omit<Event, 'id'>) => {
+        setIsSaving(true);
+        setError(null);
+        setSuccessMessage(null);
+        
+        try {
+            if ('id' in eventData) {
+                await updateEvent(eventData);
+                setSuccessMessage('Event updated successfully! Changes are saved to Firebase.');
+            } else {
+                await addEvent(eventData);
+                setSuccessMessage('Event added successfully! It\'s now saved in Firebase.');
+            }
+            setIsModalOpen(false);
+            // Clear success message after 3 seconds
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (err: any) {
+            setError(err.message || 'Failed to save event. Please try again.');
+            console.error('Error saving event:', err);
+        } finally {
+            setIsSaving(false);
         }
-        setIsModalOpen(false);
+    };
+
+    const handleDeleteEvent = async (eventId: string) => {
+        if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+            return;
+        }
+        
+        try {
+            await deleteEvent(eventId);
+            setSuccessMessage('Event deleted successfully from Firebase!');
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (err: any) {
+            setError(err.message || 'Failed to delete event. Please try again.');
+            console.error('Error deleting event:', err);
+            setTimeout(() => setError(null), 5000);
+        }
     };
 
     if (currentUser?.role !== 'admin') return null;
@@ -48,6 +86,18 @@ const AdminDashboardPage: React.FC = () => {
             <div className="flex justify-between items-center mb-8">
               <h1 className="text-4xl font-bold uppercase tracking-wider">Admin Dashboard</h1>
             </div>
+
+            {error && (
+                <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg">
+                    <strong>Error:</strong> {error}
+                </div>
+            )}
+
+            {successMessage && (
+                <div className="mb-4 p-4 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg">
+                    <strong>Success:</strong> {successMessage}
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <StatCard title="Total Events" value={events.length} />
@@ -83,7 +133,7 @@ const AdminDashboardPage: React.FC = () => {
                                         <td className="p-4">${event.price}</td>
                                         <td className="p-4 flex space-x-2">
                                             <Button size="sm" onClick={() => openEditModal(event)}>Edit</Button>
-                                            <Button size="sm" variant="secondary" onClick={() => deleteEvent(event.id)}>Delete</Button>
+                                            <Button size="sm" variant="secondary" onClick={() => handleDeleteEvent(event.id)}>Delete</Button>
                                         </td>
                                     </tr>
                                 ))}
@@ -93,39 +143,92 @@ const AdminDashboardPage: React.FC = () => {
                 </div>
             )}
             {activeTab === 'bookings' && (
-                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-x-auto">
-                     <table className="w-full text-left">
-                         <thead className="bg-gray-100 dark:bg-gray-800">
-                             <tr>
-                                 <th className="p-4">Event</th>
-                                 <th className="p-4">User</th>
-                                 <th className="p-4">Tickets</th>
-                                 <th className="p-4">Total Price</th>
-                                 <th className="p-4">Status</th>
-                             </tr>
-                         </thead>
-                         <tbody>
-                             {bookings.map((booking, index) => {
-                                 const event = events.find(e => e.id === booking.eventId);
-                                 return (
-                                     <tr key={booking.id} className={`border-t border-gray-200 dark:border-gray-700 ${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-900'} hover:bg-gray-100 dark:hover:bg-gray-800/50`}>
-                                         <td className="p-4">{event?.title || 'N/A'}</td>
-                                         <td className="p-4">{booking.userName}<br/><span className="text-sm text-gray-500 dark:text-gray-400">{booking.userEmail}</span></td>
-                                         <td className="p-4">{booking.tickets}</td>
-                                         <td className="p-4">${booking.totalPrice.toFixed(2)}</td>
-                                         <td className="p-4">
-                                            <span className={`px-3 py-1 text-sm font-semibold rounded-full ${booking.status === 'Confirmed' ? 'bg-green-600 text-white' : 'bg-yellow-600 text-black'}`}>
-                                                {booking.status}
-                                            </span>
-                                         </td>
-                                     </tr>
-                                 );
-                             })}
-                         </tbody>
-                     </table>
-                 </div>
+                <div>
+                    {bookings.length > 0 ? (
+                        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-x-auto shadow-lg">
+                            <div className="p-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                    All User Bookings ({bookings.length})
+                                </h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                    View and manage all bookings made by users
+                                </p>
+                            </div>
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-100 dark:bg-gray-800">
+                                    <tr>
+                                        <th className="p-4 font-semibold">Booking Date</th>
+                                        <th className="p-4 font-semibold">Event</th>
+                                        <th className="p-4 font-semibold">User</th>
+                                        <th className="p-4 font-semibold">Contact</th>
+                                        <th className="p-4 font-semibold">Tickets</th>
+                                        <th className="p-4 font-semibold">Total Price</th>
+                                        <th className="p-4 font-semibold">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {bookings.map((booking, index) => {
+                                        const event = events.find(e => e.id === booking.eventId);
+                                        return (
+                                            <tr key={booking.id} className={`border-t border-gray-200 dark:border-gray-700 ${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-900'} hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors`}>
+                                                <td className="p-4 text-sm">
+                                                    {new Date(booking.bookingDate).toLocaleDateString('en-US', { 
+                                                        year: 'numeric', 
+                                                        month: 'short', 
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="font-medium text-gray-900 dark:text-white">{event?.title || 'Event Deleted'}</div>
+                                                    {event && (
+                                                        <div className="text-sm text-gray-500 dark:text-gray-400">{event.venue}</div>
+                                                    )}
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="font-medium text-gray-900 dark:text-white">{booking.userName}</div>
+                                                    <div className="text-sm text-gray-500 dark:text-gray-400">{booking.userEmail}</div>
+                                                </td>
+                                                <td className="p-4 text-sm text-gray-600 dark:text-gray-400">{booking.phone}</td>
+                                                <td className="p-4">
+                                                    <span className="font-semibold text-gray-900 dark:text-white">{booking.tickets}</span>
+                                                    <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">ticket{booking.tickets !== 1 ? 's' : ''}</span>
+                                                </td>
+                                                <td className="p-4">
+                                                    <span className="font-bold text-lg text-red-600">${booking.totalPrice.toFixed(2)}</span>
+                                                </td>
+                                                <td className="p-4">
+                                                    <span className={`px-3 py-1.5 text-sm font-semibold rounded-full inline-block ${
+                                                        booking.status === 'Confirmed' 
+                                                            ? 'bg-green-600 text-white' 
+                                                            : 'bg-yellow-600 text-black'
+                                                    }`}>
+                                                        {booking.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-12 text-center">
+                            <div className="inline-block p-6 bg-gray-100 dark:bg-gray-800 rounded-full mb-6">
+                                <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Bookings Yet</h3>
+                            <p className="text-lg text-gray-500 dark:text-gray-400">
+                                Bookings will appear here once users start booking events.
+                            </p>
+                        </div>
+                    )}
+                </div>
             )}
-            {isModalOpen && <EventModal event={editingEvent} onSave={handleSaveEvent} onClose={() => setIsModalOpen(false)} />}
+            {isModalOpen && <EventModal event={editingEvent} onSave={handleSaveEvent} onClose={() => setIsModalOpen(false)} isSaving={isSaving} />}
         </div>
     );
 };
@@ -153,7 +256,7 @@ const SelectField: React.FC<React.SelectHTMLAttributes<HTMLSelectElement> & { la
 );
 
 
-const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => void, onClose: () => void}> = ({ event, onSave, onClose }) => {
+const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => Promise<void>, onClose: () => void, isSaving?: boolean}> = ({ event, onSave, onClose, isSaving = false }) => {
     const [formData, setFormData] = useState({
         title: event?.title || '',
         date: event?.date ? new Date(event.date).toISOString().substring(0, 16) : '',
@@ -197,7 +300,7 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => voi
         setFormData(prev => ({ ...prev, images: [urlToSet, ...prev.images.filter(url => url !== urlToSet)] }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (formData.images.length === 0) {
             alert("Please add at least one image for the event.");
@@ -205,9 +308,9 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => voi
         }
         const dataToSave = { ...formData, date: new Date(formData.date).toISOString() };
         if (event) {
-            onSave({ ...dataToSave, id: event.id });
+            await onSave({ ...dataToSave, id: event.id });
         } else {
-            onSave(dataToSave);
+            await onSave(dataToSave);
         }
     };
 
@@ -258,8 +361,10 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => voi
                     </div>
 
                     <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-                        <Button type="submit">Save Event</Button>
+                        <Button type="button" variant="secondary" onClick={onClose} disabled={isSaving}>Cancel</Button>
+                        <Button type="submit" disabled={isSaving}>
+                            {isSaving ? 'Saving to Firebase...' : 'Save Event'}
+                        </Button>
                     </div>
                 </form>
             </div>

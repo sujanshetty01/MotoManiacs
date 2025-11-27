@@ -11,41 +11,84 @@ const HomePage: React.FC = () => {
     return (
         <div className="animate-fade-in">
             {/* Hero Section */}
-            <div className="relative h-[60vh] md:h-[80vh] flex items-center justify-center text-center overflow-hidden">
-                <img 
-                    src="https://picsum.photos/seed/hero/1920/1080" 
-                    alt="Motorsport background"
-                    className="absolute top-0 left-0 w-full h-full object-cover z-0 transition-all duration-300 brightness-75 dark:brightness-50"
-                />
-                <div className="relative z-10 p-6">
-                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tighter uppercase" style={{ textShadow: '0 0 15px rgba(229, 9, 20, 0.8)' }}>
-                        MotoManiacs
-                    </h1>
-                    <p className="mt-4 text-lg md:text-2xl text-gray-200">
-                        Fuel Your Passion for Motorsports
-                    </p>
-                    <Link to="/events">
-                        <Button size="lg" className="mt-8 animate-pulse">Explore Events</Button>
-                    </Link>
+            <div className="relative h-[70vh] md:h-[90vh] flex items-center justify-center text-center overflow-hidden">
+                <div className="absolute inset-0 z-0">
+                    <img 
+                        src="https://picsum.photos/seed/hero/1920/1080" 
+                        alt="Motorsport background"
+                        className="w-full h-full object-cover transition-all duration-700 brightness-[0.4] dark:brightness-[0.3] scale-110 hover:scale-100"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 to-transparent"></div>
+                </div>
+                <div className="relative z-10 p-6 max-w-4xl mx-auto">
+                    <div className="animate-fade-in-up">
+                        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tight uppercase mb-6 drop-shadow-2xl" 
+                            style={{ 
+                                textShadow: '0 0 30px rgba(229, 9, 20, 0.6), 0 0 60px rgba(229, 9, 20, 0.4)',
+                                letterSpacing: '-0.02em'
+                            }}>
+                            MotoManiacs
+                        </h1>
+                        <p className="mt-4 text-xl md:text-3xl text-gray-100 font-light mb-8 drop-shadow-lg">
+                            Fuel Your Passion for Motorsports
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                            <Link to="/events" className="group">
+                                <Button size="lg" className="transform transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:shadow-red-500/50 px-8 py-4 text-lg font-semibold">
+                                    Explore Events
+                                    <svg className="inline-block ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                    </svg>
+                                </Button>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+                {/* Scroll indicator */}
+                <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10 animate-bounce">
+                    <svg className="w-6 h-6 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
                 </div>
             </div>
 
             {/* Featured Events Section */}
-            <div className="py-16 bg-gray-100 dark:bg-gray-900/50">
+            <div className="py-20 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-black">
                 <div className="container mx-auto px-6">
-                    <div className="text-center mb-12">
-                         <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 dark:text-white uppercase tracking-wider border-b-2 border-red-600 inline-block pb-2">
+                    <div className="text-center mb-16">
+                        <div className="inline-block mb-4">
+                            <span className="text-red-600 font-bold text-sm uppercase tracking-widest">Featured</span>
+                        </div>
+                        <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white uppercase tracking-tight mb-4">
                             Featured Events
                         </h2>
+                        <div className="w-24 h-1 bg-gradient-to-r from-transparent via-red-600 to-transparent mx-auto"></div>
+                        <p className="mt-6 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                            Discover our handpicked selection of the most exciting motorsport events
+                        </p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {featuredEvents.map(event => (
-                            <EventCard key={event.id} event={event} />
-                        ))}
-                    </div>
-                     <div className="text-center mt-12">
+                    {featuredEvents.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                            {featuredEvents.map((event, index) => (
+                                <div key={event.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
+                                    <EventCard event={event} />
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-16">
+                            <p className="text-xl text-gray-500 dark:text-gray-400">No featured events available at the moment.</p>
+                        </div>
+                    )}
+                    <div className="text-center mt-12">
                         <Link to="/events">
-                            <Button size="lg" variant="secondary">View All Events</Button>
+                            <Button size="lg" variant="secondary" className="group transform transition-all duration-300 hover:scale-105 px-8">
+                                View All Events
+                                <svg className="inline-block ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                            </Button>
                         </Link>
                     </div>
                 </div>

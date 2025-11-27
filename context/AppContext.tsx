@@ -1,6 +1,14 @@
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { Event, Booking, User } from '../types';
-import { mockEvents, mockBookings, mockUsers } from '../data/mockData';
+import { signIn, signUp, signInWithGoogle, signOutUser, onAuthStateChange } from '../services/authService';
+import { getEvents, addEvent as addEventToFirestore, updateEvent as updateEventInFirestore, deleteEvent as deleteEventFromFirestore, subscribeToEvents } from '../services/eventsService';
+import { addBooking as addBookingToFirestore, cancelBooking as cancelBookingInFirestore, subscribeToAllBookings, subscribeToUserBookings } from '../services/bookingsService';
+import { seedEvents } from '../scripts/seedEvents';
+
+// Make seedEvents available in browser console for development
+if (typeof window !== 'undefined') {
+  (window as any).seedEvents = seedEvents;
+}
 
 type Theme = 'light' | 'dark';
 
@@ -17,22 +25,102 @@ interface AppContextType {
   addBooking: (booking: Omit<Booking, 'id' | 'userId'>) => Promise<Booking>;
   cancelBooking: (bookingId: string) => Promise<void>;
   login: (email: string, password: string) => Promise<User>;
+  register: (email: string, password: string) => Promise<User>;
+  loginWithGoogle: () => Promise<User>;
   logout: () => Promise<void>;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [events, setEvents] = useState<Event[]>(mockEvents);
+  const [events, setEvents] = useState<Event[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with true to wait for auth check
   const [theme, setTheme] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('theme') as Theme | null;
     if (savedTheme) return savedTheme;
     const userPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     return userPrefersDark ? 'dark' : 'light';
   });
+
+  // Load events from Firestore on initialization (works even when logged out)
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const loadedEvents = await getEvents();
+        setEvents(loadedEvents);
+      } catch (error) {
+        console.error('Error loading events:', error);
+        // Keep empty array if loading fails
+        setEvents([]);
+      }
+    };
+
+    loadEvents();
+
+    // Set up real-time listener for events
+    const unsubscribeEvents = subscribeToEvents((updatedEvents) => {
+      setEvents(updatedEvents);
+    });
+
+    return () => {
+      unsubscribeEvents();
+    };
+  }, []);
+
+  // Set up auth state listener and bookings subscription
+  useEffect(() => {
+    let unsubscribeBookings: (() => void) | null = null;
+
+    const unsubscribe = onAuthStateChange(async (user) => {
+      setCurrentUser(user);
+      setIsLoading(false);
+      
+      // Unsubscribe from previous bookings listener
+      if (unsubscribeBookings) {
+        unsubscribeBookings();
+        unsubscribeBookings = null;
+      }
+      
+      // Set up bookings subscription based on user role
+      if (user) {
+        try {
+          if (user.role === 'admin') {
+            // Admin sees all bookings
+            unsubscribeBookings = subscribeToAllBookings((bookings) => {
+              setBookings(bookings);
+            });
+          } else {
+            // Regular users see only their bookings
+            console.log('Setting up user bookings subscription for userId:', user.id);
+            unsubscribeBookings = subscribeToUserBookings(user.id, (bookings) => {
+              console.log('User bookings updated:', bookings.length, 'bookings');
+              setBookings(bookings);
+            });
+          }
+        } catch (error: any) {
+          console.error('Error setting up bookings subscription:', error);
+          // If there's an index error, show helpful message
+          if (error.code === 'failed-precondition') {
+            console.warn('Firestore index required. Check console for index creation link.');
+          }
+          setBookings([]);
+          // Note: onSnapshot errors are handled in the subscription callback, not here
+          // This catch only handles synchronous errors during subscription setup
+        }
+      } else {
+        setBookings([]);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      if (unsubscribeBookings) {
+        unsubscribeBookings();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -46,54 +134,116 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
   
   const addEvent = async (event: Omit<Event, 'id'>) => {
-    const newEvent = { ...event, id: new Date().getTime().toString() };
-    setEvents(prev => [...prev, newEvent]);
+    try {
+      // Add to Firestore - real-time listener will update state automatically
+      await addEventToFirestore(event);
+    } catch (error: any) {
+      console.error('Error adding event:', error);
+      throw new Error(error.message || 'Failed to add event');
+    }
   };
 
   const updateEvent = async (updatedEvent: Event) => {
-    setEvents(prev => prev.map(event => (event.id === updatedEvent.id ? updatedEvent : event)));
+    try {
+      // Update in Firestore - real-time listener will update state automatically
+      await updateEventInFirestore(updatedEvent);
+    } catch (error: any) {
+      console.error('Error updating event:', error);
+      throw new Error(error.message || 'Failed to update event');
+    }
   };
 
   const deleteEvent = async (eventId: string) => {
-    setEvents(prev => prev.filter(event => event.id !== eventId));
+    try {
+      // Delete from Firestore - real-time listener will update state automatically
+      await deleteEventFromFirestore(eventId);
+    } catch (error: any) {
+      console.error('Error deleting event:', error);
+      throw new Error(error.message || 'Failed to delete event');
+    }
   };
 
   const addBooking = async (booking: Omit<Booking, 'id' | 'userId'>): Promise<Booking> => {
     if (!currentUser) {
         throw new Error("User must be logged in to make a booking.");
     }
-    const newBooking: Booking = {
+    try {
+      // Add to Firestore - real-time listener will update state automatically
+      const bookingWithUserId = {
         ...booking,
-        id: new Date().getTime().toString(),
         userId: currentUser.id,
-    };
-    setBookings(prev => [...prev, newBooking]);
-    return newBooking;
+      };
+      console.log('AppContext: Adding booking with userId:', currentUser.id);
+      const createdBooking = await addBookingToFirestore(bookingWithUserId);
+      console.log('AppContext: Booking created successfully:', createdBooking.id);
+      // Don't manually update state - let the real-time listener handle it
+      return createdBooking;
+    } catch (error: any) {
+      console.error('AppContext: Error adding booking:', error);
+      // Re-throw the error so the UI can handle it
+      throw error;
+    }
   };
   
   const cancelBooking = async (bookingId: string) => {
-    setBookings(prev => prev.map(b => b.id === bookingId ? {...b, status: 'Cancelled'} : b));
+    try {
+      // Update in Firestore - real-time listener will update state automatically
+      await cancelBookingInFirestore(bookingId);
+    } catch (error: any) {
+      console.error('Error cancelling booking:', error);
+      throw new Error(error.message || 'Failed to cancel booking');
+    }
   };
 
   const login = async (email: string, password: string): Promise<User> => {
-    const user = mockUsers.find(u => u.email === email);
-    if (user) {
-        setCurrentUser(user);
-        if (user.role === 'admin') {
-            setBookings(mockBookings);
-        } else {
-            const userBookings = mockBookings.filter(b => b.userId === user.id);
-            setBookings(userBookings);
-        }
-        return user;
-    } else {
-      throw new Error("Invalid credentials. Please try again.");
+    setIsLoading(true);
+    try {
+      const user = await signIn(email, password);
+      // Auth state listener will update currentUser automatically
+      return user;
+    } catch (error: any) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  const register = async (email: string, password: string): Promise<User> => {
+    setIsLoading(true);
+    try {
+      const user = await signUp(email, password);
+      // Auth state listener will update currentUser automatically
+      return user;
+    } catch (error: any) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  const loginWithGoogle = async (): Promise<User> => {
+    setIsLoading(true);
+    try {
+      const user = await signInWithGoogle();
+      // Auth state listener will update currentUser automatically
+      return user;
+    } catch (error: any) {
+      setIsLoading(false);
+      throw error;
     }
   };
 
   const logout = async () => {
-    setCurrentUser(null);
-    setBookings([]);
+    setIsLoading(true);
+    try {
+      await signOutUser();
+      // Auth state listener will update currentUser automatically
+      setCurrentUser(null);
+      setBookings([]);
+    } catch (error: any) {
+      setIsLoading(false);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const value = { 
@@ -108,7 +258,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       deleteEvent, 
       addBooking, 
       cancelBooking, 
-      login, 
+      login,
+      register,
+      loginWithGoogle,
       logout 
   };
   
