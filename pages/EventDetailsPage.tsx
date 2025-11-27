@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../hooks/useAppContext';
 import Button from '../components/Button';
 import { TicketType } from '../types';
+import QuickBook from '../components/QuickBook';
 
 const EventDetailsPage: React.FC = () => {
     const { eventId } = useParams<{ eventId: string }>();
@@ -128,9 +129,13 @@ const EventDetailsPage: React.FC = () => {
                             >
                                 Book Tickets Now
                             </Button>
-                            <p className="text-center text-xs text-gray-500 mt-4">
+                            <p className="text-center text-xs text-gray-500 mt-4 mb-8">
                                 Secure payment • Instant confirmation
                             </p>
+
+                            <div className="border-t border-gray-200 dark:border-gray-800 pt-6">
+                                <QuickBook eventId={event.id} eventTitle={event.title} />
+                            </div>
                         </div>
                     </div>
                 </div>

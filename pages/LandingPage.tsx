@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../components/Button';
+import QuickBook from '../components/QuickBook';
 
 const LandingPage: React.FC = () => {
     return (
@@ -78,6 +79,37 @@ const LandingPage: React.FC = () => {
                             </div>
                             <h3 className="text-2xl font-bold mb-4 text-white">Exclusive Access</h3>
                             <p className="text-gray-400">Get VIP treatment, pit lane access, and meet-and-greets with pro riders.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Arrive & Drive Section */}
+            <div className="py-24 bg-black relative border-t border-zinc-800">
+                <div className="container mx-auto px-6">
+                    <div className="flex flex-col md:flex-row items-center gap-12">
+                        <div className="md:w-1/2">
+                            <h2 className="text-4xl font-black uppercase mb-6 text-white">
+                                Arrive <span className="text-red-600">&</span> Drive
+                            </h2>
+                            <p className="text-xl text-gray-300 mb-6 font-light">
+                                No bike? No problem. Book a session on our track-ready machines instantly.
+                                Just show up, suit up, and ride.
+                            </p>
+                            <ul className="space-y-4 text-gray-400 mb-8">
+                                <li className="flex items-center gap-3">
+                                    <span className="text-red-500 font-bold">✓</span> Professional Instructors
+                                </li>
+                                <li className="flex items-center gap-3">
+                                    <span className="text-red-500 font-bold">✓</span> Safety Gear Included
+                                </li>
+                                <li className="flex items-center gap-3">
+                                    <span className="text-red-500 font-bold">✓</span> Timing Transponders
+                                </li>
+                            </ul>
+                        </div>
+                        <div className="md:w-1/2 w-full">
+                            <QuickBook />
                         </div>
                     </div>
                 </div>

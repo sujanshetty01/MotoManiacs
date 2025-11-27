@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../hooks/useAppContext';
+import { useCart } from '../context/CartContext';
 import Button from './Button';
 import ThemeToggleButton from './ThemeToggleButton';
+import CartDrawer from './CartDrawer';
 
 const MotoIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-600" viewBox="0 0 20 20" fill="currentColor">
@@ -10,10 +12,10 @@ const MotoIcon = () => (
     </svg>
 );
 
-
 const Header: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const { currentUser, logout } = useAppContext();
+    const { toggleCart, cartCount } = useCart();
     const navigate = useNavigate();
 
     const handleLogout = async () => {
@@ -23,92 +25,129 @@ const Header: React.FC = () => {
             setIsOpen(false);
         } catch (error) {
             console.error('Logout error:', error);
-            // Still navigate even if logout fails
             navigate('/');
             setIsOpen(false);
         }
     };
 
     const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
-        `block py-2 pr-4 pl-3 uppercase tracking-wider transition-all duration-300 font-semibold relative ${
+        `block py-2 px-3 text-sm font-medium transition-all duration-200 rounded-md ${
             isActive 
-                ? 'text-red-600 dark:text-red-500' 
-                : 'text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-500'
-        } ${
-            isActive 
-                ? 'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-red-600 after:dark:bg-red-500 after:rounded-full' 
-                : ''
+                ? 'text-red-600 bg-red-50 dark:bg-red-900/10 dark:text-red-400' 
+                : 'text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-800'
         }`;
     
     return (
-        <header className="bg-white/95 dark:bg-black/95 backdrop-blur-md sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800 shadow-sm">
-            <div className="container mx-auto flex justify-between items-center p-4">
-                <Link to="/home" className="flex items-center space-x-3 group">
-                    <div className="transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12">
-                        <MotoIcon />
-                    </div>
-                    <span className="text-2xl font-black tracking-tight text-gray-900 dark:text-white group-hover:text-red-600 transition-colors duration-300">MotoManiacs</span>
-                </Link>
+        <>
+            <header className="bg-white/80 dark:bg-black/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 dark:border-gray-800">
+                <div className="container mx-auto flex justify-between items-center h-16 px-4">
+                    <Link to="/home" className="flex items-center gap-2 group">
+                        <div className="transform transition-transform duration-300 group-hover:rotate-12">
+                            <MotoIcon />
+                        </div>
+                        <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">MotoManiacs</span>
+                    </Link>
 
-                <div className="hidden md:flex items-center space-x-8">
-                    <NavLink to="/home" className={navLinkClasses}>Home</NavLink>
-                    <NavLink to="/events" className={navLinkClasses}>Events</NavLink>
-                    {currentUser && <NavLink to="/dashboard" className={navLinkClasses}>Dashboard</NavLink>}
-                    {currentUser?.role === 'admin' && <NavLink to="/admin/dashboard" className={navLinkClasses}>Admin</NavLink>}
-                    {currentUser ? (
-                        <Button onClick={handleLogout} size="sm" variant="secondary" className="flex items-center gap-2 group">
-                            <span>Logout</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    <div className="hidden md:flex items-center gap-1">
+                        <NavLink to="/ecosystem" className={navLinkClasses}>Ecosystem</NavLink>
+                        <NavLink to="/campus" className={navLinkClasses}>Campus</NavLink>
+                        <NavLink to="/talent-hunt/submit" className={navLinkClasses}>Talent Hunt</NavLink>
+                        <NavLink to="/events" className={navLinkClasses}>Events</NavLink>
+                        <NavLink to="/store" className={navLinkClasses}>Store</NavLink>
+                        {currentUser && <NavLink to="/dashboard" className={navLinkClasses}>Dashboard</NavLink>}
+                        {currentUser?.role === 'admin' && <NavLink to="/admin/dashboard" className={navLinkClasses}>Admin</NavLink>}
+                        
+                        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
+
+                        {/* Cart Button */}
+                        <button 
+                            onClick={toggleCart} 
+                            className="relative p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                        </Button>
-                    ) : (
-                        <Link to="/login">
-                            <Button size="sm" className="group">
-                                Login
-                                <svg className="inline-block ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                </svg>
-                            </Button>
-                        </Link>
-                    )}
-                    <ThemeToggleButton />
-                </div>
+                            {cartCount > 0 && (
+                                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 transform translate-x-1/4 -translate-y-1/4 bg-red-600 rounded-full">
+                                    {cartCount}
+                                </span>
+                            )}
+                        </button>
 
-                <div className="md:hidden flex items-center space-x-4">
-                     <ThemeToggleButton />
-                    <button onClick={() => setIsOpen(!isOpen)} className="text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white focus:outline-none">
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16m-7 6h7"} />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-            {isOpen && (
-                <div className="md:hidden bg-white dark:bg-gray-900 p-2">
-                    <NavLink to="/home" className={navLinkClasses} onClick={()=>setIsOpen(false)}>Home</NavLink>
-                    <NavLink to="/events" className={navLinkClasses} onClick={()=>setIsOpen(false)}>Events</NavLink>
-                    {currentUser && <NavLink to="/dashboard" className={navLinkClasses} onClick={()=>setIsOpen(false)}>Dashboard</NavLink>}
-                    {currentUser?.role === 'admin' && <NavLink to="/admin/dashboard" className={navLinkClasses} onClick={()=>setIsOpen(false)}>Admin</NavLink>}
-                    {currentUser ? (
-                        <div className="p-2">
-                            <Button onClick={handleLogout} size="sm" variant="secondary" className="w-full flex items-center justify-center gap-2 group">
+                        <ThemeToggleButton />
+
+                        {currentUser ? (
+                            <Button onClick={handleLogout} size="sm" variant="secondary" className="ml-2 flex items-center gap-2 group text-sm">
                                 <span>Logout</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                                 </svg>
                             </Button>
-                        </div>
-                    ): (
-                        <div className="p-2">
-                            <Link to="/login" onClick={()=>setIsOpen(false)}>
-                                <Button size="sm" className="w-full">Login</Button>
+                        ) : (
+                            <Link to="/login" className="ml-2">
+                                <Button size="sm" className="group text-sm">
+                                    Login
+                                    <svg className="inline-block ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                    </svg>
+                                </Button>
                             </Link>
-                        </div>
-                    )}
+                        )}
+                    </div>
+
+                    <div className="md:hidden flex items-center space-x-4">
+                        <button 
+                            onClick={toggleCart} 
+                            className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-500 transition-colors"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            {cartCount > 0 && (
+                                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/4 -translate-y-1/4 bg-red-600 rounded-full">
+                                    {cartCount}
+                                </span>
+                            )}
+                        </button>
+                        <ThemeToggleButton />
+                        <button onClick={() => setIsOpen(!isOpen)} className="text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white focus:outline-none">
+                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16m-7 6h7"} />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-            )}
-        </header>
+                {isOpen && (
+                    <div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
+                        <div className="p-2 space-y-1">
+                            <NavLink to="/home" className={navLinkClasses} onClick={()=>setIsOpen(false)}>Home</NavLink>
+                            <NavLink to="/ecosystem" className={navLinkClasses} onClick={()=>setIsOpen(false)}>Ecosystem</NavLink>
+                            <NavLink to="/campus" className={navLinkClasses} onClick={()=>setIsOpen(false)}>Campus</NavLink>
+                            <NavLink to="/talent-hunt/submit" className={navLinkClasses} onClick={()=>setIsOpen(false)}>Talent Hunt</NavLink>
+                            <NavLink to="/events" className={navLinkClasses} onClick={()=>setIsOpen(false)}>Events</NavLink>
+                            <NavLink to="/store" className={navLinkClasses} onClick={()=>setIsOpen(false)}>Store</NavLink>
+                            {currentUser && <NavLink to="/dashboard" className={navLinkClasses} onClick={()=>setIsOpen(false)}>Dashboard</NavLink>}
+                            {currentUser?.role === 'admin' && <NavLink to="/admin/dashboard" className={navLinkClasses} onClick={()=>setIsOpen(false)}>Admin</NavLink>}
+                        </div>
+                        <div className="p-4 border-t border-gray-100 dark:border-gray-800">
+                            {currentUser ? (
+                                <Button onClick={handleLogout} size="sm" variant="secondary" className="w-full flex items-center justify-center gap-2 group">
+                                    <span>Logout</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                    </svg>
+                                </Button>
+                            ): (
+                                <Link to="/login" onClick={()=>setIsOpen(false)}>
+                                    <Button size="sm" className="w-full">Login</Button>
+                                </Link>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </header>
+            <CartDrawer />
+        </>
     );
 };
 
