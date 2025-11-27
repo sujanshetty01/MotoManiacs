@@ -14,6 +14,8 @@ import { User } from '../types';
 
 // Initialize Google Auth Provider
 const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('profile');
+googleProvider.addScope('email');
 
 // Firestore collection name for user roles
 const USERS_COLLECTION = 'users';
@@ -25,7 +27,7 @@ export const getUserRole = async (uid: string): Promise<'user' | 'admin'> => {
   try {
     const userDocRef = doc(db, USERS_COLLECTION, uid);
     const userDoc = await getDoc(userDocRef);
-    
+
     if (userDoc.exists()) {
       const userData = userDoc.data();
       return userData.role || 'user'; // Default to 'user' if role is not set
@@ -81,7 +83,7 @@ export const signIn = async (email: string, password: string): Promise<User> => 
   } catch (error: any) {
     console.error('Sign in error:', error);
     let errorMessage = 'Failed to sign in. Please try again.';
-    
+
     if (error.code === 'auth/invalid-email') {
       errorMessage = 'Invalid email address.';
     } else if (error.code === 'auth/user-disabled') {
@@ -93,7 +95,7 @@ export const signIn = async (email: string, password: string): Promise<User> => 
     } else if (error.code === 'auth/invalid-credential') {
       errorMessage = 'Invalid email or password.';
     }
-    
+
     throw new Error(errorMessage);
   }
 };
@@ -104,7 +106,7 @@ export const signIn = async (email: string, password: string): Promise<User> => 
 export const signUp = async (email: string, password: string): Promise<User> => {
   try {
     const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, email, password);
-    
+
     // Create user document in Firestore with default 'user' role
     const userDocRef = doc(db, USERS_COLLECTION, userCredential.user.uid);
     await setDoc(userDocRef, {
@@ -112,12 +114,12 @@ export const signUp = async (email: string, password: string): Promise<User> => 
       role: 'user',
       createdAt: serverTimestamp(),
     });
-    
+
     return await firebaseUserToAppUser(userCredential.user);
   } catch (error: any) {
     console.error('Sign up error:', error);
     let errorMessage = 'Failed to create account. Please try again.';
-    
+
     if (error.code === 'auth/email-already-in-use') {
       errorMessage = 'An account with this email already exists.';
     } else if (error.code === 'auth/invalid-email') {
@@ -125,49 +127,36 @@ export const signUp = async (email: string, password: string): Promise<User> => 
     } else if (error.code === 'auth/weak-password') {
       errorMessage = 'Password should be at least 6 characters.';
     }
-    
+
     throw new Error(errorMessage);
   }
 };
+
 
 /**
  * Sign in with Google
  */
 export const signInWithGoogle = async (): Promise<User> => {
   try {
-    const result: UserCredential = await signInWithPopup(auth, googleProvider);
-    const firebaseUser = result.user;
-    
-    // Check if user document exists, if not create one
-    const userDocRef = doc(db, USERS_COLLECTION, firebaseUser.uid);
+    const userCredential = await signInWithPopup(auth, googleProvider);
+
+    // Check if user exists in Firestore, if not create it
+    const userDocRef = doc(db, USERS_COLLECTION, userCredential.user.uid);
     const userDoc = await getDoc(userDocRef);
-    
+
     if (!userDoc.exists()) {
-      // First time Google sign-in - create user document with default 'user' role
       await setDoc(userDocRef, {
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName,
-        photoURL: firebaseUser.photoURL,
+        email: userCredential.user.email,
         role: 'user',
-        provider: 'google',
         createdAt: serverTimestamp(),
       });
-    } else {
-      // Update existing user document with latest info
-      await setDoc(userDocRef, {
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName,
-        photoURL: firebaseUser.photoURL,
-        provider: 'google',
-        lastLogin: serverTimestamp(),
-      }, { merge: true });
     }
-    
-    return await firebaseUserToAppUser(firebaseUser);
+
+    return await firebaseUserToAppUser(userCredential.user);
   } catch (error: any) {
     console.error('Google sign in error:', error);
     let errorMessage = 'Failed to sign in with Google. Please try again.';
-    
+
     if (error.code === 'auth/popup-closed-by-user') {
       errorMessage = 'Sign-in popup was closed. Please try again.';
     } else if (error.code === 'auth/popup-blocked') {
@@ -176,8 +165,12 @@ export const signInWithGoogle = async (): Promise<User> => {
       errorMessage = 'Sign-in was cancelled. Please try again.';
     } else if (error.code === 'auth/account-exists-with-different-credential') {
       errorMessage = 'An account already exists with this email. Please sign in with your email and password.';
+    } else if (error.code === 'auth/unauthorized-domain') {
+      errorMessage = 'This domain is not authorized for OAuth operations. Please add it to the Firebase Console.';
+    } else if (error.code === 'auth/operation-not-allowed') {
+      errorMessage = 'Google Sign-In is not enabled. Please enable it in the Firebase Console.';
     }
-    
+
     throw new Error(errorMessage);
   }
 };

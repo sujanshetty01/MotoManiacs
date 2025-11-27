@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+<<<<<<< HEAD
 
 interface ImportMetaEnv {
   readonly VITE_FIREBASE_API_KEY?: string;
@@ -13,3 +14,5 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
+=======
+>>>>>>> b5c6244

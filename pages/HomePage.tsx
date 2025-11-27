@@ -11,10 +11,10 @@ const HomePage: React.FC = () => {
     return (
         <div className="animate-fade-in">
             {/* Hero Section */}
-            <div className="relative h-[70vh] md:h-[90vh] flex items-center justify-center text-center overflow-hidden">
+            <div className="relative h-[60vh] md:h-[80vh] flex items-center justify-center text-center overflow-hidden">
                 <div className="absolute inset-0 z-0">
                     <img 
-                        src="https://picsum.photos/seed/hero/1920/1080" 
+                        src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=2070&auto=format&fit=crop" 
                         alt="Motorsport background"
                         className="w-full h-full object-cover transition-all duration-700 brightness-[0.4] dark:brightness-[0.3] scale-110 hover:scale-100"
                     />
@@ -44,12 +44,6 @@ const HomePage: React.FC = () => {
                             </Link>
                         </div>
                     </div>
-                </div>
-                {/* Scroll indicator */}
-                <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10 animate-bounce">
-                    <svg className="w-6 h-6 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                    </svg>
                 </div>
             </div>
 

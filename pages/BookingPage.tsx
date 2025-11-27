@@ -13,6 +13,7 @@ const BookingPage: React.FC = () => {
   
   const [event, setEvent] = useState(events.find(e => e.id === eventId));
   const [tickets, setTickets] = useState(1);
+  const [selectedTicketType, setSelectedTicketType] = useState<string>('General Access');
   const [name, setName] = useState(currentUser?.email.split('@')[0].replace(/\b\w/g, l => l.toUpperCase()) || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [phone, setPhone] = useState('');
@@ -31,8 +32,16 @@ const BookingPage: React.FC = () => {
     return <div className="text-center py-10">Loading event details...</div>;
   }
   
+  // Mock ticket types if not present
+  const ticketTypes = event.ticketTypes || [
+      { id: 'gen', name: 'General Access', price: event.price, description: 'Standard entry to the event area.' },
+      { id: 'vip', name: 'VIP Pass', price: event.price * 2, description: 'Premium seating, lounge access, and complimentary drinks.' },
+      { id: 'pit', name: 'Pit Lane Access', price: event.price * 3, description: 'Exclusive access to the pit lane and meet-and-greet opportunities.' },
+  ];
+
+  const currentTicketType = ticketTypes.find(t => t.name === selectedTicketType) || ticketTypes[0];
+  const totalPrice = currentTicketType.price * tickets;
   const coverImage = event.images && event.images.length > 0 ? event.images[0] : 'https://picsum.photos/seed/fallback/800/600';
-  const totalPrice = event.price * tickets;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +60,7 @@ const BookingPage: React.FC = () => {
             userEmail: email,
             phone,
             tickets,
+            ticketType: selectedTicketType,
             totalPrice,
             bookingDate: new Date().toISOString(),
             status: 'Confirmed' as 'Confirmed',
@@ -71,7 +81,7 @@ const BookingPage: React.FC = () => {
     return (
       <div className="container mx-auto px-6 py-12 text-center animate-fade-in">
         <h1 className="text-4xl text-green-500 font-bold mb-4">Booking Confirmed!</h1>
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-8 max-w-2xl mx-auto">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-8 max-w-2xl mx-auto shadow-xl">
           <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">{event.title}</h2>
           <p className="text-gray-500 dark:text-gray-400 mb-6">{new Date(event.date).toLocaleString()}</p>
           
@@ -82,16 +92,17 @@ const BookingPage: React.FC = () => {
             <p className="text-xs text-gray-500 dark:text-gray-500 mt-3 font-mono">{bookingDetails.id.substring(0, 8).toUpperCase()}</p>
           </div>
           
-          <div className="text-left space-y-3">
+          <div className="text-left space-y-3 border-t border-gray-200 dark:border-gray-800 pt-6">
              <p><strong className="text-gray-600 dark:text-gray-300">Booking ID:</strong> {bookingDetails.id}</p>
              <p><strong className="text-gray-600 dark:text-gray-300">Name:</strong> {bookingDetails.userName}</p>
+             <p><strong className="text-gray-600 dark:text-gray-300">Ticket Type:</strong> {bookingDetails.ticketType}</p>
              <p><strong className="text-gray-600 dark:text-gray-300">Tickets:</strong> {bookingDetails.tickets}</p>
-             <p><strong className="text-gray-600 dark:text-gray-300">Total Price:</strong> ${bookingDetails.totalPrice.toFixed(2)}</p>
+             <p><strong className="text-gray-600 dark:text-gray-300">Total Price:</strong> <span className="text-red-600 font-bold">${bookingDetails.totalPrice.toFixed(2)}</span></p>
           </div>
-          <p className="mt-6 text-gray-500 dark:text-gray-500">A confirmation email has been sent to {bookingDetails.userEmail}.</p>
+          <p className="mt-6 text-gray-500 dark:text-gray-500 text-sm">A confirmation email has been sent to {bookingDetails.userEmail}.</p>
           
           {/* Download PDF Button */}
-          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <Button 
               onClick={async () => await downloadTicketAsPDF(bookingDetails, event)} 
               className="bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2"
@@ -110,38 +121,72 @@ const BookingPage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-6 py-12">
-      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden md:flex">
-        <div className="md:w-1/2">
+      <div className="max-w-5xl mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden md:flex">
+        <div className="md:w-1/2 relative">
             <img src={coverImage} alt={event.title} className="w-full h-full object-cover"/>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-black/50"></div>
+            <div className="absolute bottom-0 left-0 p-6 text-white md:hidden">
+                <h2 className="text-2xl font-bold">{event.title}</h2>
+                <p className="text-sm opacity-90">{event.venue}</p>
+            </div>
         </div>
         <div className="p-8 md:w-1/2">
-          <h1 className="text-3xl font-bold mb-2">{event.title}</h1>
-          <p className="text-gray-500 dark:text-gray-400 mb-6">{event.venue}</p>
+          <h1 className="text-3xl font-bold mb-2 hidden md:block">{event.title}</h1>
+          <p className="text-gray-500 dark:text-gray-400 mb-6 hidden md:block">{event.venue}</p>
           
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label htmlFor="name" className="block text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
-              <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-red-500" required />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="email" className="block text-gray-700 dark:text-gray-300 mb-2">Email</label>
-              <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-red-500" required />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="phone" className="block text-gray-700 dark:text-gray-300 mb-2">Phone</label>
-              <input type="tel" id="phone" value={phone} onChange={e => setPhone(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-red-500" required />
-            </div>
-            <div className="mb-6">
-              <label htmlFor="tickets" className="block text-gray-700 dark:text-gray-300 mb-2">Number of Tickets</label>
-              <input type="number" id="tickets" min="1" max="10" value={tickets} onChange={e => setTickets(Number(e.target.value))} className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-red-500" required />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-gray-700 dark:text-gray-300 mb-2 font-semibold">Select Ticket Type</label>
+              <div className="grid grid-cols-1 gap-3">
+                  {ticketTypes.map((type) => (
+                      <div 
+                          key={type.id}
+                          onClick={() => setSelectedTicketType(type.name)}
+                          className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 flex justify-between items-center ${
+                              selectedTicketType === type.name 
+                                  ? 'border-red-600 bg-red-50 dark:bg-red-900/20' 
+                                  : 'border-gray-200 dark:border-gray-700 hover:border-red-300'
+                          }`}
+                      >
+                          <div>
+                              <p className="font-bold text-gray-900 dark:text-white">{type.name}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{type.description}</p>
+                          </div>
+                          <span className="font-bold text-red-600">${type.price}</span>
+                      </div>
+                  ))}
+              </div>
             </div>
 
-            <div className="flex justify-between items-center bg-gray-100 dark:bg-gray-800 p-4 rounded-md">
-                <span className="text-lg font-bold">Total Price:</span>
-                <span className="text-2xl font-bold text-red-500">${totalPrice.toFixed(2)}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="tickets" className="block text-gray-700 dark:text-gray-300 mb-2 font-semibold">Quantity</label>
+                  <input type="number" id="tickets" min="1" max="10" value={tickets} onChange={e => setTickets(Number(e.target.value))} className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-red-500" required />
+                </div>
+                <div>
+                   <label htmlFor="phone" className="block text-gray-700 dark:text-gray-300 mb-2 font-semibold">Phone</label>
+                   <input type="tel" id="phone" value={phone} onChange={e => setPhone(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-red-500" required />
+                </div>
             </div>
 
-            <Button type="submit" className="w-full mt-6" size="lg">Confirm Booking</Button>
+            <div>
+              <label htmlFor="name" className="block text-gray-700 dark:text-gray-300 mb-2 font-semibold">Full Name</label>
+              <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-red-500" required />
+            </div>
+            <div>
+              <label htmlFor="email" className="block text-gray-700 dark:text-gray-300 mb-2 font-semibold">Email</label>
+              <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-red-500" required />
+            </div>
+
+            <div className="flex justify-between items-center bg-gray-100 dark:bg-gray-800 p-4 rounded-xl mt-6">
+                <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Amount</p>
+                    <p className="text-xs text-gray-400">{tickets} x {selectedTicketType}</p>
+                </div>
+                <span className="text-3xl font-black text-red-600">${totalPrice.toFixed(2)}</span>
+            </div>
+
+            <Button type="submit" className="w-full mt-6 py-4 text-lg shadow-lg hover:shadow-red-600/30" size="lg">Confirm Booking</Button>
           </form>
         </div>
       </div>

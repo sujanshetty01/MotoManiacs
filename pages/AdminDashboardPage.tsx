@@ -3,8 +3,13 @@ import { useAppContext } from '../hooks/useAppContext';
 import Button from '../components/Button';
 import { Event, EventType } from '../types';
 import { generateImages, ImageGenerationConfig } from '../services/imagenService';
+import CMSManagement from '../components/CMSManagement';
+import AdminReviewQueue from '../components/AdminReviewQueue';
+import ProductManagement from '../components/ProductManagement';
+import InputField from '../components/InputField';
+import TextAreaField from '../components/TextAreaField';
 
-type Tab = 'events' | 'bookings';
+type Tab = 'events' | 'bookings' | 'cms' | 'submissions' | 'products';
 
 const StatCard: React.FC<{ title: string; value: string | number }> = ({ title, value }) => (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
@@ -106,9 +111,12 @@ const AdminDashboardPage: React.FC = () => {
                 <StatCard title="Total Revenue" value={`$${totalRevenue.toFixed(2)}`} />
             </div>
 
-            <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
-                <button onClick={() => setActiveTab('events')} className={`py-2 px-4 font-semibold transition-colors ${activeTab === 'events' ? 'text-red-500 border-b-2 border-red-500' : 'text-gray-500 dark:text-gray-400'}`}>Manage Events</button>
-                <button onClick={() => setActiveTab('bookings')} className={`py-2 px-4 font-semibold transition-colors ${activeTab === 'bookings' ? 'text-red-500 border-b-2 border-red-500' : 'text-gray-500 dark:text-gray-400'}`}>View Bookings</button>
+            <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6 overflow-x-auto">
+                <button onClick={() => setActiveTab('events')} className={`py-2 px-4 font-semibold transition-colors whitespace-nowrap ${activeTab === 'events' ? 'text-red-500 border-b-2 border-red-500' : 'text-gray-500 dark:text-gray-400'}`}>Manage Events</button>
+                <button onClick={() => setActiveTab('bookings')} className={`py-2 px-4 font-semibold transition-colors whitespace-nowrap ${activeTab === 'bookings' ? 'text-red-500 border-b-2 border-red-500' : 'text-gray-500 dark:text-gray-400'}`}>View Bookings</button>
+                <button onClick={() => setActiveTab('cms')} className={`py-2 px-4 font-semibold transition-colors whitespace-nowrap ${activeTab === 'cms' ? 'text-red-500 border-b-2 border-red-500' : 'text-gray-500 dark:text-gray-400'}`}>CMS Content</button>
+                <button onClick={() => setActiveTab('submissions')} className={`py-2 px-4 font-semibold transition-colors whitespace-nowrap ${activeTab === 'submissions' ? 'text-red-500 border-b-2 border-red-500' : 'text-gray-500 dark:text-gray-400'}`}>Submissions</button>
+                <button onClick={() => setActiveTab('products')} className={`py-2 px-4 font-semibold transition-colors whitespace-nowrap ${activeTab === 'products' ? 'text-red-500 border-b-2 border-red-500' : 'text-gray-500 dark:text-gray-400'}`}>Products</button>
             </div>
 
             {activeTab === 'events' && (
@@ -203,7 +211,9 @@ const AdminDashboardPage: React.FC = () => {
                                                     <span className={`px-3 py-1.5 text-sm font-semibold rounded-full inline-block ${
                                                         booking.status === 'Confirmed' 
                                                             ? 'bg-green-600 text-white' 
-                                                            : 'bg-yellow-600 text-black'
+                                                            : booking.status === 'Cancelled'
+                                                                ? 'bg-red-600 text-white'
+                                                                : 'bg-yellow-500 text-white'
                                                     }`}>
                                                         {booking.status}
                                                     </span>
@@ -216,11 +226,6 @@ const AdminDashboardPage: React.FC = () => {
                         </div>
                     ) : (
                         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-12 text-center">
-                            <div className="inline-block p-6 bg-gray-100 dark:bg-gray-800 rounded-full mb-6">
-                                <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                </svg>
-                            </div>
                             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Bookings Yet</h3>
                             <p className="text-lg text-gray-500 dark:text-gray-400">
                                 Bookings will appear here once users start booking events.
@@ -229,24 +234,14 @@ const AdminDashboardPage: React.FC = () => {
                     )}
                 </div>
             )}
+            {activeTab === 'cms' && <CMSManagement />}
+            {activeTab === 'submissions' && <AdminReviewQueue />}
+            {activeTab === 'products' && <ProductManagement />}
             {isModalOpen && <EventModal event={editingEvent} onSave={handleSaveEvent} onClose={() => setIsModalOpen(false)} isSaving={isSaving} />}
         </div>
     );
 };
 
-// --- Helper components for EventModal form fields ---
-const InputField: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => (
-    <div>
-        <label className="block text-sm font-medium text-gray-500 dark:text-gray-300 mb-1">{label}</label>
-        <input {...props} className="w-full bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500" />
-    </div>
-);
-const TextareaField: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }> = ({ label, ...props }) => (
-    <div>
-        <label className="block text-sm font-medium text-gray-500 dark:text-gray-300 mb-1">{label}</label>
-        <textarea {...props} className="w-full bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
-    </div>
-);
 const SelectField: React.FC<React.SelectHTMLAttributes<HTMLSelectElement> & { label: string, children: React.ReactNode }> = ({ label, children, ...props }) => (
     <div>
         <label className="block text-sm font-medium text-gray-500 dark:text-gray-300 mb-1">{label}</label>
@@ -255,7 +250,6 @@ const SelectField: React.FC<React.SelectHTMLAttributes<HTMLSelectElement> & { la
         </select>
     </div>
 );
-
 
 const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => Promise<void>, onClose: () => void, isSaving?: boolean}> = ({ event, onSave, onClose, isSaving = false }) => {
     const [formData, setFormData] = useState({
@@ -401,7 +395,7 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => Pro
                             <option value={EventType.Bike}>Bike</option>
                         </SelectField>
                         <div className="md:col-span-2">
-                             <TextareaField label="Description" name="description" value={formData.description} onChange={handleChange} placeholder="Event description..." className="h-24" required/>
+                             <TextAreaField label="Description" name="description" value={formData.description} onChange={handleChange} placeholder="Event description..." className="h-24" required/>
                         </div>
                          <div className="flex items-center md:col-span-2">
                             <input id="featured" name="featured" type="checkbox" checked={formData.featured} onChange={handleChange} className="h-4 w-4 text-red-600 bg-gray-300 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-red-500" />
