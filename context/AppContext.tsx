@@ -3,12 +3,6 @@ import { Event, Booking, User } from '../types';
 import { signIn, signUp, signInWithGoogle, signOutUser, onAuthStateChange } from '../services/authService';
 import { getEvents, addEvent as addEventToFirestore, updateEvent as updateEventInFirestore, deleteEvent as deleteEventFromFirestore, subscribeToEvents } from '../services/eventsService';
 import { addBooking as addBookingToFirestore, cancelBooking as cancelBookingInFirestore, subscribeToAllBookings, subscribeToUserBookings } from '../services/bookingsService';
-import { seedEvents } from '../scripts/seedEvents';
-
-// Make seedEvents available in browser console for development
-if (typeof window !== 'undefined') {
-  (window as any).seedEvents = seedEvents;
-}
 
 type Theme = 'light' | 'dark';
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import Button from '../components/Button';
 import { Event, EventType } from '../types';
+import { generateImages, ImageGenerationConfig } from '../services/imagenService';
 
 type Tab = 'events' | 'bookings';
 
@@ -269,14 +270,21 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => Pro
         featured: event?.featured || false
     });
     const [newImageUrl, setNewImageUrl] = useState('');
-    const [autoGenerateImage, setAutoGenerateImage] = useState(!event); // Auto-generate for new events
-    const [imageGenConfig, setImageGenConfig] = useState({
-        style: 'photorealistic' as 'photorealistic' | 'digital-art' | 'anime' | 'illustration' | 'cinematic',
-        aspectRatio: '16:9' as '16:9' | '4:3' | '1:1' | '3:4' | '9:16',
-        safetyFilter: 'moderate' as 'strict' | 'moderate' | 'permissive',
+    const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [generationError, setGenerationError] = useState<string | null>(null);
+    const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+    const [generationConfig, setGenerationConfig] = useState<ImageGenerationConfig>({
+        eventTitle: '',
+        description: '',
+        numImages: 4,
+        aspectRatio: '16:9',
+        style: 'photorealistic',
+        mood: 'vibrant',
+        cameraGuidance: 'editorial',
+        imageSize: '1K',
+        personGeneration: 'allow_adult',
     });
-    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-    const [imageGenError, setImageGenError] = useState<string | null>(null);
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -308,85 +316,61 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => Pro
         setFormData(prev => ({ ...prev, images: [urlToSet, ...prev.images.filter(url => url !== urlToSet)] }));
     };
 
-    const handleGenerateImage = async () => {
-        if (!formData.description || !formData.title) {
-            alert('Please provide a title and description to generate an image.');
+    const handleOpenGenerateModal = () => {
+        // Update config with current form data
+        setGenerationConfig(prev => ({
+            ...prev,
+            eventTitle: formData.title || prev.eventTitle,
+            description: formData.description || prev.description,
+        }));
+        setIsGenerateModalOpen(true);
+        setGenerationError(null);
+        setGeneratedImages([]);
+    };
+
+    const handleGenerateImages = async () => {
+        if (!formData.title || !formData.description) {
+            setGenerationError('Please fill in the event title and description first.');
             return;
         }
 
-        setIsGeneratingImage(true);
-        setImageGenError(null);
+        setIsGenerating(true);
+        setGenerationError(null);
+        setGeneratedImages([]);
 
         try {
-            const { generateEventImageAuto } = await import('../services/imageGenerationService');
-            const result = await generateEventImageAuto(
-                formData.title,
-                formData.description,
-                formData.type,
-                formData.venue,
-                {
-                    style: imageGenConfig.style,
-                    aspectRatio: imageGenConfig.aspectRatio,
-                    safetyFilter: imageGenConfig.safetyFilter,
-                    quality: 'high',
-                }
-            );
+            const config: ImageGenerationConfig = {
+                ...generationConfig,
+                eventTitle: formData.title,
+                description: formData.description,
+            };
 
-            if (result.success && result.imageUrl) {
-                // Add generated image as the first image (cover)
-                setFormData(prev => ({
-                    ...prev,
-                    images: [result.imageUrl, ...prev.images],
-                }));
-                setImageGenError(null);
-            } else {
-                setImageGenError(result.error || 'Failed to generate image. Please try again or add images manually.');
-            }
+            const images = await generateImages(config);
+            setGeneratedImages(images);
         } catch (error: any) {
-            console.error('Error generating image:', error);
-            setImageGenError(error.message || 'Failed to generate image. Please try again.');
+            console.error('Error generating images:', error);
+            setGenerationError(error.message || 'Failed to generate images. Please check your API key and try again.');
         } finally {
-            setIsGeneratingImage(false);
+            setIsGenerating(false);
         }
+    };
+
+    const handleAddGeneratedImage = (imageUrl: string) => {
+        if (!formData.images.includes(imageUrl)) {
+            setFormData(prev => ({ ...prev, images: [...prev.images, imageUrl] }));
+        }
+    };
+
+    const handleAddAllGeneratedImages = () => {
+        const newImages = generatedImages.filter(img => !formData.images.includes(img));
+        if (newImages.length > 0) {
+            setFormData(prev => ({ ...prev, images: [...prev.images, ...newImages] }));
+        }
+        setIsGenerateModalOpen(false);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        // Auto-generate image if enabled and no images exist
-        if (autoGenerateImage && formData.images.length === 0 && formData.description && formData.title) {
-            setIsGeneratingImage(true);
-            try {
-                const { generateEventImageAuto } = await import('../services/imageGenerationService');
-                const result = await generateEventImageAuto(
-                    formData.title,
-                    formData.description,
-                    formData.type,
-                    formData.venue,
-                    {
-                        style: imageGenConfig.style,
-                        aspectRatio: imageGenConfig.aspectRatio,
-                        safetyFilter: imageGenConfig.safetyFilter,
-                        quality: 'high',
-                    }
-                );
-
-                if (result.success && result.imageUrl) {
-                    formData.images = [result.imageUrl];
-                } else {
-                    // If generation fails, require manual image
-                    setIsGeneratingImage(false);
-                    alert(result.error || 'Failed to auto-generate image. Please add at least one image manually.');
-                    return;
-                }
-            } catch (error: any) {
-                setIsGeneratingImage(false);
-                alert('Failed to auto-generate image. Please add at least one image manually.');
-                return;
-            } finally {
-                setIsGeneratingImage(false);
-            }
-        }
 
         if (formData.images.length === 0) {
             alert("Please add at least one image for the event.");
@@ -425,108 +409,14 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => Pro
                         </div>
                     </div>
 
-                    {/* Auto-Generate Image Section */}
-                    {!event && (
-                        <div className="md:col-span-2 border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-                            <div className="flex items-center mb-4">
-                                <input 
-                                    id="autoGenerateImage" 
-                                    type="checkbox" 
-                                    checked={autoGenerateImage} 
-                                    onChange={(e) => setAutoGenerateImage(e.target.checked)} 
-                                    className="h-4 w-4 text-red-600 bg-gray-300 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-red-500" 
-                                />
-                                <label htmlFor="autoGenerateImage" className="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Auto-generate image from description (Nano Banana AI)
-                                </label>
-                            </div>
-                            
-                            {autoGenerateImage && (
-                                <div className="ml-6 space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Style</label>
-                                            <select 
-                                                value={imageGenConfig.style} 
-                                                onChange={(e) => setImageGenConfig(prev => ({ ...prev, style: e.target.value as any }))}
-                                                className="w-full bg-white dark:bg-gray-700 p-2 rounded border border-gray-300 dark:border-gray-600 text-sm"
-                                            >
-                                                <option value="photorealistic">Photorealistic</option>
-                                                <option value="digital-art">Digital Art</option>
-                                                <option value="anime">Anime</option>
-                                                <option value="illustration">Illustration</option>
-                                                <option value="cinematic">Cinematic</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Aspect Ratio</label>
-                                            <select 
-                                                value={imageGenConfig.aspectRatio} 
-                                                onChange={(e) => setImageGenConfig(prev => ({ ...prev, aspectRatio: e.target.value as any }))}
-                                                className="w-full bg-white dark:bg-gray-700 p-2 rounded border border-gray-300 dark:border-gray-600 text-sm"
-                                            >
-                                                <option value="16:9">16:9 (Widescreen)</option>
-                                                <option value="4:3">4:3 (Standard)</option>
-                                                <option value="1:1">1:1 (Square)</option>
-                                                <option value="3:4">3:4 (Portrait)</option>
-                                                <option value="9:16">9:16 (Vertical)</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Safety Filter</label>
-                                            <select 
-                                                value={imageGenConfig.safetyFilter} 
-                                                onChange={(e) => setImageGenConfig(prev => ({ ...prev, safetyFilter: e.target.value as any }))}
-                                                className="w-full bg-white dark:bg-gray-700 p-2 rounded border border-gray-300 dark:border-gray-600 text-sm"
-                                            >
-                                                <option value="strict">Strict</option>
-                                                <option value="moderate">Moderate</option>
-                                                <option value="permissive">Permissive</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={handleGenerateImage}
-                                        disabled={isGeneratingImage || !formData.description || !formData.title}
-                                        className="mt-2 bg-purple-600 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-700 transition-colors duration-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                    >
-                                        {isGeneratingImage ? (
-                                            <>
-                                                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                                Generating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                                Generate Image Now
-                                            </>
-                                        )}
-                                    </button>
-                                    {imageGenError && (
-                                        <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
-                                            <p className="text-xs text-red-600 dark:text-red-400 font-medium mb-1">Error:</p>
-                                            <p className="text-xs text-red-600 dark:text-red-400 whitespace-pre-line">{imageGenError}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                                💡 Tip: Make sure you've set up the image generation proxy endpoint. See IMAGE_GENERATION_SETUP.md for instructions.
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
                     <div>
                         <h3 className="text-lg font-semibold mb-2 mt-2 border-t border-gray-200 dark:border-gray-700 pt-4">Event Images</h3>
                         <div className="flex gap-2 mb-4">
                             <input type="url" value={newImageUrl} onChange={e => setNewImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" className="flex-grow bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500" />
-                            <Button type="button" onClick={handleAddImage} variant="secondary">Add</Button>
+                            <Button type="button" onClick={handleAddImage} variant="secondary">Add URL</Button>
+                            <Button type="button" onClick={handleOpenGenerateModal} variant="secondary" className="bg-blue-600 hover:bg-blue-700 text-white">
+                                Generate with AI
+                            </Button>
                         </div>
                         
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 p-2 rounded-md bg-gray-100 dark:bg-black/20 min-h-[8rem]">
@@ -545,13 +435,177 @@ const EventModal: React.FC<{event: Event | null, onSave: (eventData: any) => Pro
                     </div>
 
                     <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <Button type="button" variant="secondary" onClick={onClose} disabled={isSaving || isGeneratingImage}>Cancel</Button>
-                        <Button type="submit" disabled={isSaving || isGeneratingImage}>
-                            {isGeneratingImage ? 'Generating Image...' : isSaving ? 'Saving to Firebase...' : 'Save Event'}
+                        <Button type="button" variant="secondary" onClick={onClose} disabled={isSaving}>Cancel</Button>
+                        <Button type="submit" disabled={isSaving}>
+                            {isSaving ? 'Saving to Firebase...' : 'Save Event'}
                         </Button>
                     </div>
                 </form>
             </div>
+
+            {/* Image Generation Modal */}
+            {isGenerateModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[60] p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-lg p-8 w-full max-w-4xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+                        <h2 className="text-2xl font-bold mb-6">Generate Images with AI</h2>
+                        
+                        {generationError && (
+                            <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg">
+                                <strong>Error:</strong> {generationError}
+                            </div>
+                        )}
+
+                        <div className="space-y-4 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-300 mb-1">
+                                        Number of Images
+                                    </label>
+                                    <select
+                                        value={generationConfig.numImages}
+                                        onChange={(e) => setGenerationConfig(prev => ({ ...prev, numImages: parseInt(e.target.value) }))}
+                                        className="w-full bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    >
+                                        <option value={1}>1</option>
+                                        <option value={2}>2</option>
+                                        <option value={3}>3</option>
+                                        <option value={4}>4</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-300 mb-1">
+                                        Aspect Ratio
+                                    </label>
+                                    <select
+                                        value={generationConfig.aspectRatio}
+                                        onChange={(e) => setGenerationConfig(prev => ({ ...prev, aspectRatio: e.target.value as any }))}
+                                        className="w-full bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    >
+                                        <option value="1:1">1:1 (Square)</option>
+                                        <option value="16:9">16:9 (Wide)</option>
+                                        <option value="9:16">9:16 (Portrait)</option>
+                                        <option value="4:3">4:3 (Standard)</option>
+                                        <option value="3:4">3:4 (Portrait)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-300 mb-1">
+                                        Style
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={generationConfig.style}
+                                        onChange={(e) => setGenerationConfig(prev => ({ ...prev, style: e.target.value }))}
+                                        placeholder="e.g., photorealistic, vintage film, neon cyberpunk"
+                                        className="w-full bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-300 mb-1">
+                                        Mood / Color Palette
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={generationConfig.mood}
+                                        onChange={(e) => setGenerationConfig(prev => ({ ...prev, mood: e.target.value }))}
+                                        placeholder="e.g., warm and vibrant, muted pastel"
+                                        className="w-full bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-300 mb-1">
+                                        Camera / Composition
+                                    </label>
+                                    <select
+                                        value={generationConfig.cameraGuidance}
+                                        onChange={(e) => setGenerationConfig(prev => ({ ...prev, cameraGuidance: e.target.value }))}
+                                        className="w-full bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    >
+                                        <option value="editorial">Editorial</option>
+                                        <option value="close-up">Close-up</option>
+                                        <option value="wide-angle">Wide-angle</option>
+                                        <option value="aerial">Aerial</option>
+                                        <option value="poster">Poster Layout</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-300 mb-1">
+                                        Image Size
+                                    </label>
+                                    <select
+                                        value={generationConfig.imageSize}
+                                        onChange={(e) => setGenerationConfig(prev => ({ ...prev, imageSize: e.target.value as '1K' | '2K' }))}
+                                        className="w-full bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    >
+                                        <option value="1K">1K (Standard)</option>
+                                        <option value="2K">2K (High Resolution)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between items-center mb-4">
+                            <Button
+                                type="button"
+                                onClick={handleGenerateImages}
+                                disabled={isGenerating || !formData.title || !formData.description}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                                {isGenerating ? 'Generating...' : 'Generate Images'}
+                            </Button>
+                            {generatedImages.length > 0 && (
+                                <Button
+                                    type="button"
+                                    onClick={handleAddAllGeneratedImages}
+                                    variant="secondary"
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                    Add All to Event
+                                </Button>
+                            )}
+                        </div>
+
+                        {generatedImages.length > 0 && (
+                            <div className="mb-4">
+                                <h3 className="text-lg font-semibold mb-2">Generated Images</h3>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {generatedImages.map((imgUrl, index) => (
+                                        <div key={index} className="relative group border-2 border-gray-300 dark:border-gray-700 rounded-md overflow-hidden aspect-video">
+                                            <img src={imgUrl} alt={`Generated image ${index + 1}`} className="w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    onClick={() => handleAddGeneratedImage(imgUrl)}
+                                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                                >
+                                                    Add to Event
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => setIsGenerateModalOpen(false)}
+                                disabled={isGenerating}
+                            >
+                                Close
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

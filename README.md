@@ -23,7 +23,15 @@
      VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
      ```
 
-3. Run the app:
+3. Set up Google Gemini API (for AI image generation):
+   - Get your API key from [Google AI Studio](https://ai.google.dev/)
+   - Add it to your `.env.local` file:
+     ```env
+     VITE_GEMINI_API_KEY=your-gemini-api-key
+     ```
+   - **Note**: For production, consider using a backend service (e.g., Firebase Cloud Functions) to keep your API key secure.
+
+4. Run the app:
    ```bash
    npm run dev
    ```
@@ -35,7 +43,7 @@
 ### Quick Start
 
 1. **Create environment file:**
-   Create a `.env` file in the root directory with your Firebase configuration:
+   Create a `.env` file in the root directory with your Firebase and Gemini API configuration:
    ```env
    VITE_FIREBASE_API_KEY=your-api-key
    VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
@@ -43,7 +51,7 @@
    VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
    VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
    VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
-   GEMINI_API_KEY=your-gemini-api-key-here
+   VITE_GEMINI_API_KEY=your-gemini-api-key
    ```
 
 2. **Build and run with Docker Compose:**
@@ -257,7 +265,7 @@ setUserRole(userId, 'admin')
 
 Events are now stored in Firestore and persist even after logging out. To populate initial events:
 
-**Option 1: Add Events Manually (Recommended for Production)**
+**Add Events Manually**
 1. Go to **Firestore Database** > **events** collection
 2. Click **"Add document"**
 3. Add fields matching the Event structure:
@@ -271,12 +279,6 @@ Events are now stored in Firestore and persist even after logging out. To popula
    - `type` (string): "Car", "Bike", or "All"
    - `featured` (boolean): Whether event is featured
 
-**Option 2: Seed Initial Events (For Development)**
-1. Open your app in the browser
-2. Open the browser console (F12)
-3. The `seedEvents()` function is available (or import it from `scripts/seedEvents.ts`)
-4. Run: `seedEvents()` to populate with sample events
-
 **Note**: Events are publicly readable (no authentication required) so all users can see them. Only admins can add/edit/delete events.
 
 ### 5. Set Up Bookings Collection
@@ -289,7 +291,37 @@ Bookings are automatically created when users book events. The system will:
 
 **Important**: When you first query user bookings, Firestore may prompt you to create a composite index. If you see an error with a link, click it to create the required index automatically.
 
-### 6. Security Rules (Recommended)
+### 6. Set Up Google Gemini API (for AI Image Generation)
+
+The application includes AI-powered image generation for events using Google's Imagen API. To enable this feature:
+
+1. **Get a Gemini API Key:**
+   - Go to [Google AI Studio](https://ai.google.dev/)
+   - Sign in with your Google account
+   - Click "Get API Key" and create a new API key
+   - Copy your API key
+
+2. **Add the API Key to Environment Variables:**
+   - Add `VITE_GEMINI_API_KEY=your-api-key-here` to your `.env.local` file (for local development)
+   - Add `VITE_GEMINI_API_KEY=your-api-key-here` to your `.env` file (for Docker)
+   - Rebuild your Docker container if using Docker: `docker-compose up -d --build`
+
+3. **Use Image Generation:**
+   - In the Admin Dashboard, when adding or editing an event
+   - Click "Generate with AI" button in the Event Images section
+   - Configure image generation options (style, mood, aspect ratio, etc.)
+   - Click "Generate Images" to create AI-generated images
+   - Select and add generated images to your event
+
+**Security Note:** 
+- ⚠️ **Important**: Exposing API keys in frontend code is a security risk for production applications.
+- For production, consider creating a backend service (e.g., Firebase Cloud Functions) to handle API calls and keep your API key secure.
+- You can restrict your API key in Google Cloud Console to limit usage and prevent abuse.
+
+**API Documentation:**
+- See [Google Imagen API Documentation](https://ai.google.dev/gemini-api/docs/imagen) for more details on image generation capabilities and limitations.
+
+### 7. Security Rules (Recommended)
 Update your Firestore security rules to protect user data and allow public event reading:
 
 ```javascript
@@ -345,3 +377,4 @@ service cloud.firestore {
 - ✅ **Bookings Persistence in Firestore** (all bookings saved to database)
 - ✅ **Admin Booking Management** (admins can view all user bookings)
 - ✅ **Real-time Booking Updates** (bookings sync automatically)
+- ✅ **AI Image Generation** (Generate event images using Google Imagen API)
