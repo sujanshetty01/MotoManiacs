@@ -1,12 +1,25 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../hooks/useAppContext';
 import EventCard from '../components/EventCard';
 import { EventType } from '../types';
 
 const EventsPage: React.FC = () => {
   const { events } = useAppContext();
+  const [searchParams] = useSearchParams();
   const [filter, setFilter] = useState<EventType>(EventType.All);
   const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    const filterParam = searchParams.get('filter');
+    if (filterParam) {
+      // Check if the param matches any EventType value
+      const matchedType = Object.values(EventType).find(t => t === filterParam);
+      if (matchedType) {
+        setFilter(matchedType as EventType);
+      }
+    }
+  }, [searchParams]);
 
   const filteredEvents = useMemo(() => {
     return events
@@ -22,7 +35,7 @@ const EventsPage: React.FC = () => {
   const FilterButton = ({ type, label }: { type: EventType; label: string }) => (
     <button
       onClick={() => setFilter(type)}
-      className={`px-5 py-2.5 rounded-lg font-semibold transition-all duration-300 transform ${
+      className={`px-5 py-2.5 rounded-lg font-semibold transition-all duration-300 transform whitespace-nowrap ${
         filter === type 
           ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg scale-105' 
           : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-105'
@@ -51,10 +64,14 @@ const EventsPage: React.FC = () => {
 
         {/* Filters and Search */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
-          <div className="flex flex-wrap gap-2 bg-white dark:bg-gray-800 p-2 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-            <FilterButton type={EventType.All} label="All Events" />
-            <FilterButton type={EventType.Car} label="Car Shows" />
-            <FilterButton type={EventType.Bike} label="Bike Rallies" />
+          <div className="flex flex-wrap gap-2 bg-white dark:bg-gray-800 p-2 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-x-auto max-w-full">
+            <FilterButton type={EventType.All} label="All" />
+            <FilterButton type={EventType.Car} label="Cars" />
+            <FilterButton type={EventType.Bike} label="Bikes" />
+            <FilterButton type={EventType.TrackDay} label="Track Days" />
+            <FilterButton type={EventType.OffRoad} label="Off-Road" />
+            <FilterButton type={EventType.Karting} label="Karting" />
+            <FilterButton type={EventType.SimRacing} label="Sim Racing" />
           </div>
           <div className="relative w-full md:w-80">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">

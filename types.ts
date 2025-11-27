@@ -7,6 +7,10 @@ export interface User {
 export enum EventType {
   Car = 'Car',
   Bike = 'Bike',
+  TrackDay = 'Track Day',
+  OffRoad = 'Off-Road',
+  Karting = 'Go-Karting',
+  SimRacing = 'Sim Racing',
   All = 'All',
 }
 

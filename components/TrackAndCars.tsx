@@ -9,28 +9,28 @@ const TrackAndCars: React.FC = () => {
       title: 'Track Days',
       image: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=800&q=80',
       description: 'Experience the thrill of speed on professional racing circuits.',
-      link: '/events'
+      link: '/events?filter=Track Day'
     },
     {
       id: 'off-road',
       title: 'Off-Road',
       image: 'https://images.unsplash.com/photo-1519245659620-e859806a8d3b?auto=format&fit=crop&w=800&q=80',
       description: 'Conquer challenging terrains with our off-road adventures.',
-      link: '/events'
+      link: '/events?filter=Off-Road'
     },
     {
       id: 'karting',
       title: 'Go-Karting',
       image: 'https://images.unsplash.com/photo-1505521216430-8b73b2067df0?auto=format&fit=crop&w=800&q=80',
       description: 'Competitive karting for beginners and pros alike.',
-      link: '/events'
+      link: '/events?filter=Go-Karting'
     },
     {
       id: 'sim-racing',
       title: 'Sim Racing',
       image: 'https://images.unsplash.com/photo-1547949003-9792a18a2601?auto=format&fit=crop&w=800&q=80',
       description: 'Virtual racing with state-of-the-art simulators.',
-      link: '/events'
+      link: '/events?filter=Sim Racing'
     }
   ];
 
